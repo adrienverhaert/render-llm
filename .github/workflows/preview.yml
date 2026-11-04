@@ -46,7 +46,7 @@ jobs:
       - name: Extract and verify the candidate archive
         shell: pwsh
         run: ./tools/package-local-test.ps1 -Runtime build/native/Release -Destination build/preview-package
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: render-llm-windows-x64-preview
           path: build/preview-package/render-llm-local-test.zip
