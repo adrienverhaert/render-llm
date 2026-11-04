@@ -142,7 +142,7 @@ set(LIBS ${LIBS} Qt5::Widgets Qt5::Network Freetype::Freetype)
 
 # Find sprite and shader assets and create a project
 file(GLOB_RECURSE ASSETS RELATIVE "${CMAKE_SOURCE_DIR}" "*.png" "*.vsh" "*.fsh" "*.d3d")
-# Keep the original source images for provenance while omitting retired MI-3
+# Keep the original source images for provenance while omitting retired asset
 # onboarding, advertising, upgrade, asset-browser and watermark art from the
 # native render-llm executable. Runtime UI glyphs and renderer noise stay embedded.
 list(FILTER ASSETS EXCLUDE REGEX

@@ -2390,7 +2390,7 @@ await test('RONDA E gate 5e: denyByDefault deniega Read fuera de la jaula y Bash
     assert(nativeDecision.behavior === 'allow', 'las acciones render-llm propias si deben permitirse');
 
     const legacyDecision = await cage('mcp__mi3__mi3_memory_save', {}, {});
-    assert(legacyDecision.behavior === 'deny', 'el catalogo MI-3 retirado no debe quedar permitido en produccion');
+    assert(legacyDecision.behavior === 'deny', 'el retired asset catalog no debe quedar permitido en produccion');
   } finally {
     p.close();
   }
@@ -2558,7 +2558,7 @@ await test('RONDA G jaula: denyByDefault sigue denegando Read bajo attachments/ 
 });
 
 await test('render-llm: el catalogo suma diecisiete acciones compartidas sin tools de adjuntos', () => {
-  // The retained MI-3 assistant catalog has 26 tools. render-llm adds seventeen clean
+  // The retained compatibility catalog has 26 tools. render-llm adds seventeen clean
   // scene/history/batch/video tools that share the validated action and render paths.
   assert(MI3_TOOL_NAMES.length === 43, `43 tools esperadas, hay ${MI3_TOOL_NAMES.length}: ${MI3_TOOL_NAMES.join(',')}`);
   const bad = MI3_TOOL_NAMES.filter((n) => /attach/i.test(n));
@@ -4591,8 +4591,7 @@ await test('RONDA UI (F8, hallazgo con el cerebro real): el texto INGLES del fal
   // Reproducido en la instancia: el SDK manda un SDKAssistantMessage con
   // error='authentication_failed' cuyo CONTENIDO es "Failed to authenticate:
   // OAuth session expired...". Emitirlo como texto normal lo mete en el chat y
-  // en history.jsonl -- es literalmente el mensaje criptico que Antonio vio
-  // tres veces seguidas.
+  // and history.jsonl. Authentication failures must remain notices.
   const ingles = 'Failed to authenticate: OAuth session expired and could not be refreshed';
   const { records } = await driveTurn(
     'ui-auth-textleak',
@@ -4813,7 +4812,7 @@ await test('RONDA UI (F2): el nivel de razonamiento del composer llega a las opt
     assert(
       calls.lastOptions.systemPrompt.includes('visual agent embedded') &&
         !calls.lastOptions.systemPrompt.includes('Mine-imator 3'),
-      'el agente nativo debe cargar el rol render-llm sin el manual MI-3',
+      'el agente nativo debe cargar el rol render-llm without the retired asset manual',
     );
     assert(
       brainLog(dir).includes('turno tturno-5: model=claude-haiku-4-5 effort=xhigh'),
@@ -4844,12 +4843,12 @@ await test('RONDA UI (F3): cada chat tiene su PROPIA session.json -- "new" arran
 
     writeIn(dir, { type: 'chat', action: 'new', chat_id: 'cA' });
     assert(await waitUntil(() => brainLog(dir).includes('chat new -> cA'), 5000), 'el brain no vio el chat cA');
-    writeIn(dir, { type: 'user', turn_id: 'tA-1', text: 'me llamo Antonio', project_file: '' });
+    writeIn(dir, { type: 'user', turn_id: 'tA-1', text: 'My name is Casey', project_file: '' });
     assert(await waitUntil(() => outRecords(dir).filter((r) => r.type === 'done').length === 1, 20000), 'turno A');
 
     writeIn(dir, { type: 'chat', action: 'new', chat_id: 'cB' });
     assert(await waitUntil(() => brainLog(dir).includes('chat new -> cB'), 5000), 'el brain no vio el chat cB');
-    writeIn(dir, { type: 'user', turn_id: 'tB-1', text: 'como me llamo', project_file: '' });
+    writeIn(dir, { type: 'user', turn_id: 'tB-1', text: 'What is my name?', project_file: '' });
     assert(await waitUntil(() => outRecords(dir).filter((r) => r.type === 'done').length === 2, 20000), 'turno B');
 
     const sessA = JSON.parse(fs.readFileSync(path.join(dir, 'chats', 'cA', 'session.json'), 'utf8'));

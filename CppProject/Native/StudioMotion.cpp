@@ -30,6 +30,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <vector>
 
@@ -153,7 +154,7 @@ private:
     void LoadKey(int index) {
         selected=index;loaded=index>=0?Keys()[index].toObject():QJsonObject{{"frame",frame->value()},{"value",BaseValue()},{"easing","linear"}};
         frame->setValue(loaded.value("frame").toInt());easing->setCurrentIndex(easing->findData(loaded.value("easing").toString()));
-        const auto points=loaded.value("bezier").toArray();for(int i=0;i<4;++i){bezier[i]->setValue(points.size()==4?points[i].toDouble():QList<double>{.25,.1,.25,1}[i]);bezier[i]->setProperty("shown",bezier[i]->value());}
+        const auto points=loaded.value("bezier").toArray();for(int i=0;i<4;++i){bezier[i]->setValue(points.size()==4?points[i].toDouble():std::array<double,4>{.25,.1,.25,1}[i]);bezier[i]->setProperty("shown",bezier[i]->value());}
         handles->setVisible(easing->currentData()=="bezier");form->labelForField(handles)->setVisible(easing->currentData()=="bezier");
         while(auto item=valueLayout->takeAt(0)){if(item->widget())delete item->widget();delete item;}
         numbers.clear();boolean=nullptr;choice=nullptr;color=nullptr;const auto value=loaded.value("value");
@@ -211,12 +212,12 @@ void MotionDialog::Test() {
     auto select=[this](QString id,QString prop){target->setCurrentIndex(target->findData(id));property->setCurrentIndex(property->findData(prop));};
     select("sphere","position");bool passed=Keys().size()==2,mutated=false;
     auto evaluated=[&](){
-        QList<double> result;const auto marker=global::_app->timeline_marker;
+        std::vector<double> result;const auto marker=global::_app->timeline_marker;
         RenderLlmSelectObject("sphere");const IntType timeline=global::tl_edit;
-        for(int at: {0,6,12,18,24}){global::_app->timeline_marker=at;tl_update_values(ScopeAny(timeline));result.append(ObjType(obj_timeline,timeline)->value.Value(e_value_POS_Z).ToReal());}
+        for(int at: {0,6,12,18,24}){global::_app->timeline_marker=at;tl_update_values(ScopeAny(timeline));result.push_back(ObjType(obj_timeline,timeline)->value.Value(e_value_POS_Z).ToReal());}
         global::_app->timeline_marker=marker;tl_update_values(ScopeAny(timeline));return result;
     };
-    const auto baseline=mode=="sparse"?evaluated():QList<double>();
+    const auto baseline=mode=="sparse"?evaluated():std::vector<double>();
     if(mode=="timing-review-empty") {
         popup_show(ScopeAny(global::_app->id),global::_app->popup_farkeyframes);
         QDialog* review=nullptr;for(auto widget:QApplication::topLevelWidgets())if(widget->objectName()=="studio-timing-review")review=qobject_cast<QDialog*>(widget);

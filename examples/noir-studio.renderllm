@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "agent": {},
+  "animation": {
+    "schema": 1,
+    "fps": 24,
+    "frame_count": 96,
+    "constraints": [],
+    "tracks": [
+      {
+        "id": "bounce",
+        "target": "sphere",
+        "property": "position",
+        "keys": [
+          {
+            "frame": 0,
+            "value": [
+              0,
+              0,
+              2
+            ],
+            "easing": "easeoutquad"
+          },
+          {
+            "frame": 12,
+            "value": [
+              0,
+              0,
+              5
+            ],
+            "easing": "easeinquad"
+          },
+          {
+            "frame": 24,
+            "value": [
+              0,
+              0,
+              2
+            ],
+            "easing": "easeoutquad"
+          },
+          {
+            "frame": 36,
+            "value": [
+              0,
+              0,
+              4
+            ],
+            "easing": "easeinquad"
+          },
+          {
+            "frame": 48,
+            "value": [
+              0,
+              0,
+              2
+            ],
+            "easing": "easeoutquad"
+          },
+          {
+            "frame": 60,
+            "value": [
+              0,
+              0,
+              3
+            ],
+            "easing": "easeinquad"
+          },
+          {
+            "frame": 72,
+            "value": [
+              0,
+              0,
+              2
+            ],
+            "easing": "easeoutquad"
+          },
+          {
+            "frame": 84,
+            "value": [
+              0,
+              0,
+              2.5
+            ],
+            "easing": "easeinquad"
+          },
+          {
+            "frame": 95,
+            "value": [
+              0,
+              0,
+              2
+            ],
+            "easing": "linear"
+          }
+        ]
+      }
+    ]
+  },
+  "materials": {
+    "white": {
+      "color": "#111113",
+      "metallic": 0.65,
+      "roughness": 0.32,
+      "emission": 0
+    },
+    "red": {
+      "color": "#C8C8C8",
+      "metallic": 0.97,
+      "roughness": 0.19,
+      "emission": 0
+    },
+    "floor": {
+      "color": "#090909",
+      "metallic": 0.15,
+      "roughness": 0.6,
+      "emission": 0
+    }
+  },
+  "render": {
+    "schema": 2,
+    "renderer": "UltraFlame",
+    "samples": 64
+  },
+  "scene": {
+    "world": {
+      "color": "#505050",
+      "strength": 0.25
+    },
+    "active_camera_id": "camera",
+    "objects": [
+      {
+        "id": "floor",
+        "name": "Seamless floor",
+        "kind": "cube",
+        "material_id": "floor",
+        "position": [
+          0,
+          0,
+          -0.16
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          100,
+          100,
+          0.01
+        ],
+        "visible": true
+      },
+      {
+        "id": "pedestal",
+        "name": "Pedestal",
+        "kind": "cylinder",
+        "material_id": "white",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.25,
+          0.25,
+          0.125
+        ],
+        "visible": true
+      },
+      {
+        "id": "sphere",
+        "name": "Hero sphere",
+        "kind": "sphere",
+        "material_id": "red",
+        "position": [
+          0,
+          0,
+          2
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.125,
+          0.125,
+          0.125
+        ],
+        "visible": true
+      },
+      {
+        "id": "camera",
+        "name": "Studio camera",
+        "kind": "camera",
+        "position": [
+          10,
+          10,
+          7
+        ],
+        "rotation": [
+          18,
+          0,
+          225
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "camera": {
+          "fov_y_deg": 34,
+          "orthographic": false,
+          "ortho_height": 128,
+          "dof": false,
+          "focus_distance": 0
+        }
+      },
+      {
+        "id": "key",
+        "name": "Softbox",
+        "kind": "point",
+        "position": [
+          -4,
+          3,
+          9
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "light": {
+          "color": "#FFFFFF",
+          "power": 6,
+          "size": 4
+        }
+      },
+      {
+        "id": "rim",
+        "name": "Rim light",
+        "kind": "point",
+        "position": [
+          4,
+          -5,
+          8
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "visible": true,
+        "light": {
+          "color": "#FFFFFF",
+          "power": 9,
+          "size": 3
+        }
+      }
+    ]
+  }
+}

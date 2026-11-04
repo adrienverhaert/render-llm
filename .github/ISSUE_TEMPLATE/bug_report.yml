@@ -1,0 +1,15 @@
+name: Bug report
+description: Report a reproducible failure
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include the commit, OS, expected behavior, actual behavior and minimal steps. Use fictional data; omit tokens and personal paths.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Share sanitized output. For render issues include actual backend and denoiser, if available.

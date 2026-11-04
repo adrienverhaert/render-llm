@@ -54,6 +54,11 @@ function isUnc(p: string): boolean {
   return p.startsWith('\\\\') || p.startsWith('//');
 }
 
+function pathSyntax(root: string): typeof path.win32 {
+  if (/^[A-Za-z]:/.test(root)) return path.win32;
+  return root.startsWith('/') ? path.posix : path;
+}
+
 function normalizeForCompare(s: string): string {
   return s
     .replace(/[‘’‛]/g, "'")
@@ -77,11 +82,13 @@ export function appearsLiterallyInMessage(candidate: string, userText: string): 
  *  DENTRO de `root` tras resolver. null si no. */
 function resolveUnderRoot(candidate: string, root: string): string | null {
   if (!candidate || !root) return null;
-  if (isUnc(candidate)) return null;
-  const rr = path.resolve(root);
-  const cand = path.isAbsolute(candidate) ? path.resolve(candidate) : path.resolve(rr, candidate);
-  if (cand.toLowerCase() === rr.toLowerCase()) return cand;
-  if (cand.toLowerCase().startsWith((rr + path.sep).toLowerCase())) return cand;
+  if (isUnc(candidate) || isUnc(root)) return null;
+  const syntax = pathSyntax(root);
+  if (syntax !== path.win32 && /^[A-Za-z]:/.test(candidate)) return null;
+  const rr = syntax.resolve(root);
+  const cand = syntax.resolve(rr, candidate.replace(/\\/g, '/'));
+  const relative = syntax.relative(rr, cand);
+  if (relative === '' || (!syntax.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + syntax.sep))) return cand;
   return null;
 }
 
@@ -100,9 +107,9 @@ export function resolveInDesignatedRoots(
     const resolved = resolveUnderRoot(candidate, root);
     if (!resolved) continue;
     if (key === 'data') {
-      const rr = path.resolve(root);
-      const rel = path.relative(rr, resolved);
-      const top = rel.split(path.sep)[0];
+      const syntax = pathSyntax(root);
+      const rel = syntax.relative(syntax.resolve(root), resolved);
+      const top = rel.split(syntax.sep)[0];
       if (!DATA_READ_SUBFOLDERS.includes(top)) continue;
     }
     return { resolved, root: key };
@@ -129,9 +136,9 @@ export function checkPathCage(candidate: string, userText: string, roots: Design
   if (isUnc(trimmed)) return { ok: false, reason: 'rutas de red (UNC) no permitidas' };
 
   if (appearsLiterallyInMessage(trimmed, userText)) {
-    const resolved = path.isAbsolute(trimmed)
-      ? path.resolve(trimmed)
-      : path.resolve(roots.projects || roots.project || process.cwd(), trimmed);
+    const root = roots.projects || roots.project || process.cwd();
+    const syntax = pathSyntax(/^[A-Za-z]:/.test(trimmed) ? trimmed : root);
+    const resolved = syntax.resolve(root, trimmed.replace(/\\/g, '/'));
     return { ok: true, resolved, via: 'literal' };
   }
 

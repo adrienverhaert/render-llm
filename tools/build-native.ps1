@@ -165,19 +165,19 @@ if (-not $ConfigureOnly) {
         throw "Retired product branding remains in the staged English catalog."
     }
     foreach ($tier in @(
-        '"assistantmodelhaiku": "Bajo"',
-        '"assistantmodelsonnet": "Medio"',
-        '"assistantmodelopus": "Alto"',
-        '"assistantmodelhaikushort": "Bajo"',
-        '"assistantmodelsonnetshort": "Medio"',
-        '"assistantmodelopusshort": "Alto"'
+        '"assistantmodelhaiku": "Low"',
+        '"assistantmodelsonnet": "Medium"',
+        '"assistantmodelopus": "High"',
+        '"assistantmodelhaikushort": "Low"',
+        '"assistantmodelsonnetshort": "Medium"',
+        '"assistantmodelopusshort": "High"'
     )) {
         if (-not $englishText.Contains($tier)) {
             throw "The staged Agent level catalog is missing: $tier"
         }
     }
 
-    # Particle presets belong to the retired MI-3 content workflow. They are not
+    # Particle presets belong to the retired asset content workflow. They are not
     # part of the render-llm document schema or reduced Shape/Light/Camera surface.
     $retiredParticles = Join-Path $runtimeDir "Particles"
     if (Test-Path -LiteralPath $retiredParticles -PathType Container) {
@@ -216,7 +216,7 @@ if (-not $ConfigureOnly) {
     New-Item -ItemType Directory -Path (Join-Path $assistantRuntimeFull "tools") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $assistantRuntimeFull "dist") -Force | Out-Null
     Copy-Item -Path (Join-Path $assistantSource "dist-runtime\*") -Destination (Join-Path $assistantRuntimeFull "dist") -Recurse
-    # The scripted MI-3 fake remains available to the source regression suite,
+    # The scripted editor fixture remains available to the source regression suite,
     # but it is not part of the native render-llm product runtime.
     Remove-Item -LiteralPath (Join-Path $assistantRuntimeFull "dist\fake.js") -Force
     Remove-Item -LiteralPath (Join-Path $assistantRuntimeFull "dist\fake.js.map") -Force

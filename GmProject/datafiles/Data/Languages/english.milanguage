@@ -201,9 +201,9 @@
 		"assistantinput": "Message",
 		"assistantinputph": "Ask the agent to change the scene...",
 		"assistantmodel": "Agent level",
-		"assistantmodelhaiku": "Bajo",
-		"assistantmodelsonnet": "Medio",
-		"assistantmodelopus": "Alto",
+		"assistantmodelhaiku": "Low",
+		"assistantmodelsonnet": "Medium",
+		"assistantmodelopus": "High",
 		"assistantyou": "You",
 		"assistantagent": "Agent",
 		"assistanttrimmed": "... (older messages trimmed)",
@@ -279,9 +279,9 @@
 		"assistantsugg2": "Explore four colorways",
 		"assistantsugg3": "Block a camera move",
 		"assistantpastebad": "Couldn't read the image from the clipboard",
-		"assistantmodelhaikushort": "Bajo",
-		"assistantmodelsonnetshort": "Medio",
-		"assistantmodelopusshort": "Alto"
+		"assistantmodelhaikushort": "Low",
+		"assistantmodelsonnetshort": "Medium",
+		"assistantmodelopusshort": "High"
 	},
 	"particle/": {
 		"default": "Default spawner",
