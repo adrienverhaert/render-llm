@@ -32,13 +32,14 @@ Copy-Item -LiteralPath $assistant -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'examples/studio-bounce.renderllm') -Destination (Join-Path $stage 'Data/renderllm-projects/studio-bounce.renderllm')
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSING.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repo 'docs/QUICKSTART.md') -Destination (Join-Path $stage 'README.md')
 Copy-Item -LiteralPath (Join-Path $repo 'Installer/Windows/license.txt') -Destination (Join-Path $stage 'UPSTREAM-NOTICE.txt')
 & node (Join-Path $repo 'ASSISTANT/test/verify-runtime-package.mjs') (Join-Path $stage 'ASSISTANT')
 if($LASTEXITCODE -ne 0){throw 'Staged agent verification failed.'}
 $files=@(Get-ChildItem -LiteralPath $stage -Recurse -File -Force | ForEach-Object {
     @{path=$_.FullName.Substring($stage.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
 })
-@{purpose='local test candidate; not a public release';prerequisites=@('Node.js 20+','Signed-in Codex CLI for native agent');files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $stage 'BUILD-MANIFEST.json')
+@{purpose='local test candidate; not a public release';prerequisites=@('Windows x64','Microsoft Visual C++ x64 runtime','Node.js 22+','Signed-in Codex CLI for native chat');files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $stage 'BUILD-MANIFEST.json')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive=Join-Path $destinationPath 'render-llm-local-test.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($stage,$archive,[IO.Compression.CompressionLevel]::Optimal,$false)

@@ -21,6 +21,7 @@ result without leaving the same document.
 
 **Windows x64.** Follow the [build guide](docs/BUILD.md) to run the editor and the
 [scene walkthrough](docs/DEMO.md) to try its rendering and transport interfaces.
+[Packaged builds](docs/QUICKSTART.md) include a standalone quick start.
 [Verification](docs/STATUS.md) records the tested build and export paths.
 
 <details>

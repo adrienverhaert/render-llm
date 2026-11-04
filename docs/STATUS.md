@@ -11,7 +11,7 @@ execution and package integrity.
 | Native rendering and GPU diagnostics | 1280×720 stills decoded with actual DXR/oidn-cuda |
 | Native MCP/HTTP integration | Edit/render/undo restored exact decoded RGB; both transports exported decoded PNG sequences |
 | Native MP4 export | H.264, 384×216, 96 frames, 24 fps, 4 seconds; full decode passed |
-| Extracted Windows package | 5,250 files matched their recorded hashes; startup capture, 1280×720 GPU still and 96-frame MP4 passed |
+| Extracted Windows package | 5,251 files matched their recorded hashes; startup capture, 1280×720 GPU still and 96-frame MP4 passed |
 | Native startup stability | A previously recorded intermittent startup failure remains unresolved |
 | Source and binary redistribution | License/provenance inventory incomplete; no public binary release |
 
@@ -29,9 +29,11 @@ runtime rather than the build directory:
 The tested executable's SHA-256 is
 `68f4d551b711676e2bba108211f78c7464f5a72936db389ee6398acce2240298`.
 The tested ZIP's SHA-256 is
-`a68874740cb38630ebf6ac6e242c774189d8613f5d7f3b11706cc50e73316e3e`.
+`e54ba75c6652badd486cd1f57f4ffcb9e0a9a92dc6bbf337d644f5ce3dd39195`.
 The still reported DXR and OIDN-CUDA. Startup completed with exit code zero and a
 decoded capture; this single run does not resolve the intermittent fault below.
+The final ZIP adds its quick start; its 5,250 runtime files are byte-identical to
+the extracted package used for the GPU, video, MCP and HTTP checks.
 
 ## Release requirements
 
