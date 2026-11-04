@@ -186,91 +186,60 @@ function killTree(pid: number): void {
 // 1. Instancia dedicada
 // ---------------------------------------------------------------------------
 
-/**
- * Clona la instancia del editor a Data/assistant/render_inst/ la PRIMERA vez y
- * la reutiliza despues. Exclusiones obligatorias:
- *   - Data\assistant  -> el destino vive DENTRO de ella: sin esta exclusion el
- *                        robocopy se copia a si mismo (recursion infinita).
- *   - ASSISTANT       -> 326 MB de node_modules que el render no necesita.
- *   - Projects        -> proyectos del usuario; el job trae su propia copia.
- * Tras copiar se limpian los centinelas que dispararian recuperacion de crash
- * o hooks de prueba en el clon.
- */
+/** Stage immutable runtime resources only; editor state can change during a render. */
 export function ensureRenderInstance(p: Protocol, installDir: string, onPhase: OnPhase): string {
-  const renderInst = path.join(p.dir, 'render_inst');
+  const renderInst = path.resolve(p.dir, 'render_inst');
   const exe = path.join(renderInst, RENDER_EXE_NAME);
   const marker = path.join(renderInst, '.renderllm_render_inst.json');
-
-  // RESCATE K5: la clonada se reutiliza SOLO si su exe sigue siendo el mismo
-  // binario que el de la instalacion. Antes bastaba con que EXISTIERA, asi que
-  // tras recompilar el motor los renders y exports seguian corriendo con el EXE
-  // VIEJO: cualquier gate medido despues de un arreglo del motor podia salir
-  // verde sin ejercitar el arreglo (el mismo modo de fallo que ya obligo a
-  // mantener el DEV exe en sync en instalar-mi3.ps1 -- "los tests mienten").
-  // Comparar tamano + mtime del origen cuesta un stat; solo se re-clona cuando
-  // el binario cambio de verdad.
+  if (path.dirname(renderInst) !== path.resolve(p.dir) || path.resolve(installDir) === renderInst) {
+    throw new RenderError('Invalid render instance location');
+  }
+  onPhase('instance', 'preparing native runtime');
   const srcExe = path.join(installDir, RENDER_EXE_NAME);
-  let srcStamp = '';
+  let srcStamp: string;
   try {
     const st = fs.statSync(srcExe);
+    if (!st.isFile() || st.size === 0) throw new Error('Missing executable');
     srcStamp = `${st.size}:${Math.round(st.mtimeMs)}`;
   } catch {
-    srcStamp = '';
+    throw new RenderError(`Native renderer is unavailable: ${srcExe}`);
   }
   if (fs.existsSync(exe) && fs.existsSync(marker)) {
-    let markStamp = '';
     try {
-      markStamp = String((JSON.parse(fs.readFileSync(marker, 'utf8')) as { exe_stamp?: unknown }).exe_stamp ?? '');
-    } catch {
-      markStamp = '';
-    }
-    // Si no se puede leer el exe de origen (srcStamp === '') se reutiliza como
-    // hasta ahora: mejor un render con la clonada que un fallo duro.
-    if (srcStamp === '' || markStamp === srcStamp) {
-      p.log(`render_inst reutilizada: ${renderInst}`);
-      return renderInst;
-    }
-    p.log(`render_inst OBSOLETA (el exe de la instalacion cambio: "${markStamp}" -> "${srcStamp}"); se re-clona`);
+      const saved = JSON.parse(fs.readFileSync(marker, 'utf8'));
+      if (saved.layout === 2 && saved.exe_stamp === srcStamp) {
+        p.log(`render_inst reused: ${renderInst}`);
+        return renderInst;
+      }
+    } catch { /* An incomplete or old staging marker requires a fresh copy. */ }
   }
-
   const t0 = Date.now();
-  onPhase('instance', 'clonando la instancia (una sola vez)');
-  rmQuiet(renderInst);
+  fs.rmSync(renderInst, { recursive: true, force: true });
   fs.mkdirSync(renderInst, { recursive: true });
-
-  robocopy(installDir, renderInst, [
-    '/XD', path.join(installDir, 'ASSISTANT'),
-    path.join(installDir, 'Data', 'assistant'),
-    path.join(installDir, 'Projects'),
-  ]);
-
-  // Centinelas de arneses de pruebas en la RAIZ de Data\ (hermanos de
-  // Data\assistant\, asi que el /XD de arriba no los toca): si el installDir
-  // clonado es una instancia con assistant_dev_mode activo (como la que usan
-  // los propios gates de esta ronda), estos ficheros viajan con el robocopy y
-  // el PRIMER arranque del clon los CONSUME (mi3_interface_world_startup /
-  // app_event_step los miran por existencia de archivo, sin mirar
-  // assistant_dev_mode), disparando el hook de UI-dump o el de world-import
-  // DENTRO de render_inst y ensuciandolo con su propio Data\assistant\preview\
-  // -- descubierto verificando el gate B1.6 (la exclusion anti-recursion del
-  // robocopy funcionaba; esto era un centinela hermano que ella no cubre).
-  for (const f of [
-    'session.midata', 'headless.json', 'headless.json.consumed', 'headless_result.json',
-    'assistant_dev.flag', 'log.txt', 'uiassistanttest.txt', 'assistanttick.txt', 'previewtest.txt',
-  ]) {
-    rmQuiet(path.join(renderInst, 'Data', f));
+  const copy = (relative: string): void => {
+    const source = path.join(installDir, relative);
+    if (!fs.existsSync(source)) return;
+    fs.cpSync(source, path.join(renderInst, relative), {
+      recursive: true,
+      filter: (entry) => {
+        if (fs.lstatSync(entry).isSymbolicLink()) throw new RenderError('Runtime resources must not contain symbolic links');
+        return true;
+      },
+    });
+  };
+  copy(RENDER_EXE_NAME);
+  for (const entry of fs.readdirSync(installDir, { withFileTypes: true })) {
+    if (entry.isFile() && /\.dll$/i.test(entry.name)) copy(entry.name);
   }
-  rmQuiet(path.join(renderInst, 'Data', 'assistant'));
-  rmQuiet(path.join(renderInst, 'ASSISTANT'));
-
-  if (!fs.existsSync(exe)) {
-    throw new RenderError(`la instancia clonada no tiene ${RENDER_EXE_NAME}: ${renderInst}`);
+  for (const folder of ['platforms', 'imageformats', 'styles']) copy(folder);
+  // Retained legacy resources are optional; user scenes and mutable Data are never copied.
+  for (const name of ['Fonts', 'Languages', 'Libraries', 'Render', 'Canon', 'Minecraft', 'ShinyTrims', 'Splashes', 'languages.midata', 'legacy.midata']) {
+    copy(path.join('Data', name));
   }
-
-  fs.writeFileSync(marker, JSON.stringify({ created: Date.now(), source: installDir, exe, exe_stamp: srcStamp }), 'utf8');
+  fs.writeFileSync(marker, JSON.stringify({ layout: 2, created: Date.now(), source: installDir, exe, exe_stamp: srcStamp }), 'utf8');
   const ms = Date.now() - t0;
-  p.log(`render_inst clonada en ${ms} ms desde ${installDir}`);
-  onPhase('instance', 'instancia lista', ms);
+  p.log(`render_inst staged in ${ms} ms from ${installDir}`);
+  onPhase('instance', 'runtime ready', ms);
   return renderInst;
 }
 

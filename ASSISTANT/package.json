@@ -11,7 +11,7 @@
     "mcp": "node dist/mcp-stdio.js",
     "http": "node dist/http-api.js",
     "fake": "node dist/index.js --fake",
-    "test": "npm run build && node test/run-tests.mjs",
+    "test": "npm run build && node test/run-tests.mjs && node --test test/*.test.mjs",
     "test:http-smoke": "node test/run-http-smoke.mjs",
     "test:http-video-smoke": "node test/run-http-video-smoke.mjs",
     "test:e2e-smoke": "npm run build && node test/run-e2e-smoke.mjs"
