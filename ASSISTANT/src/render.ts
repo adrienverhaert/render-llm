@@ -195,19 +195,25 @@ export function ensureRenderInstance(p: Protocol, installDir: string, onPhase: O
     throw new RenderError('Invalid render instance location');
   }
   onPhase('instance', 'preparing native runtime');
+  let runtimeDlls: string[];
   const srcExe = path.join(installDir, RENDER_EXE_NAME);
   let srcStamp: string;
   try {
     const st = fs.statSync(srcExe);
     if (!st.isFile() || st.size === 0) throw new Error('Missing executable');
-    srcStamp = `${st.size}:${Math.round(st.mtimeMs)}`;
+    runtimeDlls = fs.readdirSync(installDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && /\.dll$/i.test(entry.name)).map((entry) => entry.name).sort();
+    srcStamp = [RENDER_EXE_NAME, ...runtimeDlls].map((name) => {
+      const info = fs.statSync(path.join(installDir, name));
+      return `${name}:${info.size}:${info.mtimeMs}`;
+    }).join('|');
   } catch {
     throw new RenderError(`Native renderer is unavailable: ${srcExe}`);
   }
   if (fs.existsSync(exe) && fs.existsSync(marker)) {
     try {
       const saved = JSON.parse(fs.readFileSync(marker, 'utf8'));
-      if (saved.layout === 2 && saved.exe_stamp === srcStamp) {
+      if (saved.layout === 3 && saved.runtime_stamp === srcStamp) {
         p.log(`render_inst reused: ${renderInst}`);
         return renderInst;
       }
@@ -228,15 +234,13 @@ export function ensureRenderInstance(p: Protocol, installDir: string, onPhase: O
     });
   };
   copy(RENDER_EXE_NAME);
-  for (const entry of fs.readdirSync(installDir, { withFileTypes: true })) {
-    if (entry.isFile() && /\.dll$/i.test(entry.name)) copy(entry.name);
-  }
+  for (const name of runtimeDlls) copy(name);
   for (const folder of ['platforms', 'imageformats', 'styles']) copy(folder);
   // Retained legacy resources are optional; user scenes and mutable Data are never copied.
   for (const name of ['Fonts', 'Languages', 'Libraries', 'Render', 'Canon', 'Minecraft', 'ShinyTrims', 'Splashes', 'languages.midata', 'legacy.midata']) {
     copy(path.join('Data', name));
   }
-  fs.writeFileSync(marker, JSON.stringify({ layout: 2, created: Date.now(), source: installDir, exe, exe_stamp: srcStamp }), 'utf8');
+  fs.writeFileSync(marker, JSON.stringify({ layout: 3, created: Date.now(), source: installDir, exe, runtime_stamp: srcStamp }), 'utf8');
   const ms = Date.now() - t0;
   p.log(`render_inst staged in ${ms} ms from ${installDir}`);
   onPhase('instance', 'runtime ready', ms);

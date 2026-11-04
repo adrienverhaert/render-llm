@@ -30,6 +30,11 @@ test('render staging omits mutable editor state and replaces old cache layouts',
     fs.writeFileSync(marker, JSON.stringify({ ...original, layout: 1 }));
     ensureRenderInstance(protocol, root, () => {});
     assert.equal(fs.existsSync(path.join(instance, 'Data/old-private-state.json')), false);
+    put('Data/assistant/render_inst/stale-runtime.txt');
+    put('Qt5Core.dll', 'updated runtime dependency');
+    ensureRenderInstance(protocol, root, () => {});
+    assert.equal(fs.readFileSync(path.join(instance, 'Qt5Core.dll'), 'utf8'), 'updated runtime dependency');
+    assert.equal(fs.existsSync(path.join(instance, 'stale-runtime.txt')), false, 'DLL-only update invalidates the worker');
     fs.unlinkSync(path.join(root, 'render-llm.exe'));
     assert.throws(() => ensureRenderInstance(protocol, root, () => {}), /renderer is unavailable/);
     assert.ok(fs.existsSync(path.join(root, 'Projects/private/file.txt')), 'source data preserved');

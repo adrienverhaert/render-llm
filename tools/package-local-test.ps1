@@ -9,7 +9,8 @@ if(Test-Path -LiteralPath $destinationPath){throw 'Destination exists; choose a 
 $stage=Join-Path $destinationPath 'render-llm';$extracted=Join-Path $destinationPath 'verified-extraction'
 New-Item -ItemType Directory -Path (Join-Path $stage 'Data/renderllm-projects') -Force | Out-Null
 # Explicit immutable resources only. Never copy session, chats, credentials or user projects.
-foreach($name in @('render-llm.exe','dxcompiler.dll','dxil.dll','OpenImageDenoise_core.dll','OpenImageDenoise_device_cpu.dll','OpenImageDenoise_device_cuda.dll','OpenImageDenoise.dll','tbb12.dll','vcomp140.dll')) {
+& (Join-Path $PSScriptRoot 'stage-native-runtime.ps1') -Destination $stage -OidnBin $runtimePath -DxcBin $runtimePath
+foreach($name in @('render-llm.exe','vcomp140.dll')) {
     $file=Get-Item -LiteralPath (Join-Path $runtimePath $name)
     if($file.PSIsContainer -or $file.Length -le 0){throw "Missing runtime file: $name"}
     Copy-Item -LiteralPath $file.FullName -Destination $stage
@@ -29,6 +30,8 @@ $links=@(Get-ChildItem -LiteralPath $assistant -Recurse -Force | Where-Object { 
 if($links.Count){throw 'Assistant runtime contains a reparse point; inspect before packaging.'}
 Copy-Item -LiteralPath $assistant -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'examples/studio-bounce.renderllm') -Destination (Join-Path $stage 'Data/renderllm-projects/studio-bounce.renderllm')
+Copy-Item -LiteralPath (Join-Path $repo 'LICENSING.md') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repo 'Installer/Windows/license.txt') -Destination (Join-Path $stage 'UPSTREAM-NOTICE.txt')
 & node (Join-Path $repo 'ASSISTANT/test/verify-runtime-package.mjs') (Join-Path $stage 'ASSISTANT')
 if($LASTEXITCODE -ne 0){throw 'Staged agent verification failed.'}
 $files=@(Get-ChildItem -LiteralPath $stage -Recurse -File -Force | ForEach-Object {
