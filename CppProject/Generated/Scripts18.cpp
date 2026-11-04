@@ -742,7 +742,7 @@ namespace CppProject
 		textbox_startup();
 		history_startup();
 		textfield_group_reset(self);
-		sInt(http_assets) = http_get(link_assets_versions);
+		sInt(http_assets) = qEnvironmentVariableIsSet("RENDER_LLM_LEGACY_ASSETS") ? http_get(link_assets_versions) : IntType(-1);
 		if (file_exists_lib(gmlGlobal::working_directory + /*"Data/bbtest.txt"*/ STR(311)))
 		{
 			IntType mi3tf = file_text_open_read(gmlGlobal::working_directory + /*"Data/bbtest.txt"*/ STR(311));

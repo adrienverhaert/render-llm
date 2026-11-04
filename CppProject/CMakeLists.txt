@@ -38,10 +38,10 @@ if (WIN32)
 	add_definitions("-DDEBUG_MODE=$<$<CONFIG:Debug>:1>$<$<CONFIG:RelWithDebInfo>:1>$<$<CONFIG:Release>:0>")
 	add_definitions("-DRELEASE_MODE=!DEBUG_MODE")
 
-	set(DEV_DIR $ENV{DEV_DIR})
+	set(DEV_DIR "$ENV{DEV_DIR}" CACHE PATH "Headers for the pinned native dependencies")
 	set(EXT_DIR "${CMAKE_SOURCE_DIR}/External/${WIN_EXT_FOLDER}")
 	set(LIBS "${EXT_DIR}/zip.lib" "${EXT_DIR}/zlibstatic.lib" "${EXT_DIR}/OpenAL32.lib" "${EXT_DIR}/libx264.lib") # Zip, OpenAL, x264 (precompiled)
-	set(LIBS ${LIBS} "Mf" "Mfplat" "mfuuid" "strmiids") # FFmpeg dependencies
+	set(LIBS ${LIBS} "Mf" "Mfplat" "mfuuid" "strmiids" "winmm") # FFmpeg and OpenAL dependencies
 	# MI3: d3dcompiler linked in ALL configs — Release now self-compiles missing
 	# shader blobs (self-healing cache) instead of shipping dead shaders.
 	set(LIBS ${LIBS} "d3d11.lib" "d3dcompiler.lib") # Direct3D 11
@@ -135,9 +135,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC OFF)
 find_package(Qt5 COMPONENTS Widgets Gui Network REQUIRED)
+find_package(Freetype REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 add_definitions(${Qt5Widgets_DEFINITIONS})
-set(LIBS ${LIBS} Qt5::Widgets Qt5::Network)
+set(LIBS ${LIBS} Qt5::Widgets Qt5::Network Freetype::Freetype)
 
 # Find sprite and shader assets and create a project
 file(GLOB_RECURSE ASSETS RELATIVE "${CMAKE_SOURCE_DIR}" "*.png" "*.vsh" "*.fsh" "*.d3d")
@@ -186,6 +187,11 @@ qt5_add_resources(SRCS ${QT_INDEX_FILE})
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SRCS} ${APPICON_RC})
+if(MSVC)
+	# Use our main with the matching static CRT, not Qt's shared-CRT WinMain shim.
+	set_property(TARGET ${PROJECT_NAME} PROPERTY Qt5_NO_LINK_QTMAIN TRUE)
+	target_link_options(${PROJECT_NAME} PRIVATE /ENTRY:mainCRTStartup)
+endif()
 target_precompile_headers(${PROJECT_NAME} PUBLIC "Common.hpp")
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${LIBS})

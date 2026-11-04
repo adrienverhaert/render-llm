@@ -538,7 +538,7 @@ namespace CppProject
 		sVar(toast_script_value) = null_;
 		sBool(toast_mouseon) = false;
 		sInt(toast_last) = null_;
-		sInt(http_alert_news) = http_get(link_news);
+		sInt(http_alert_news) = qEnvironmentVariableIsSet("RENDER_LLM_LEGACY_ASSETS") ? http_get(link_news) : IntType(-1);
 	}
 	
 	void toast_add_action(ScopeAny self, VarType text, IntType script, VarType value)

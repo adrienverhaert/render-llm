@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "sources": [
+    {"name":"FFmpeg/ffmpeg-5.0","archive":"ffmpeg-n5.0.tar.gz","url":"https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n5.0.tar.gz","sha256":"80EEE07FF55952C06C2D8FF642F5298F71EECC797964A45948EAC88EB4AAE7A3","header":"libavcodec/avcodec.h"},
+    {"name":"FreeType/freetype-2.9.1","archive":"freetype-2.9.1.tar.bz2","url":"https://download.savannah.gnu.org/releases/freetype/freetype-2.9.1.tar.bz2","sha256":"DB8D87EA720EA9D5EDC5388FC7A0497BB11BA9FE972245E0F7F4C7E8B1E1E84D","header":"include/ft2build.h"},
+    {"name":"Libzip/libzip-1.9.2","archive":"libzip-1.9.2.tar.xz","url":"https://libzip.org/download/libzip-1.9.2.tar.xz","sha256":"C93E9852B7B2DC931197831438FEE5295976EE0BA24F8524A8907BE5C2BA5937","header":"lib/zip.h"},
+    {"name":"OpenAL/openal-soft-1.22.0","archive":"openal-soft-1.22.0.tar.gz","url":"https://github.com/kcat/openal-soft/archive/refs/tags/1.22.0.tar.gz","sha256":"814831A8013D7365DFD1917B27F1FB6E723F3BE3FE1C6A7FF4516425D8392F68","header":"include/AL/al.h"}
+  ]
+}

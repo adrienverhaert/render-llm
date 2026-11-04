@@ -7,7 +7,9 @@ param(
     [string]$OidnBin,
     [string]$DxcBin,
     [switch]$RequireGpuRuntime,
-    [switch]$AllowGpuFallback
+    [switch]$AllowGpuFallback,
+    [string]$QtPrefix,
+    [string]$DependencyRoot = $env:DEV_DIR
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,8 +42,40 @@ if (-not $ConfigureOnly -and -not $hasOidn -and -not $AllowGpuFallback) {
     throw "Verified OIDN and DXC runtimes are required for a native package. Supply OidnBin and DxcBin, or explicitly use -AllowGpuFallback for a diagnostic D3D11/atrous build."
 }
 
-$vcpkgRoot = $env:VCPKG_ROOT
-if (-not $vcpkgRoot) {
+$cmakeArguments = @('-S', $sourceDir, '-B', $buildDir, '-A', 'x64', "-DRENDER_LLM_ASAN=$($AddressSanitizer.IsPresent)")
+if ($DependencyRoot) {
+    $DependencyRoot = (Resolve-Path -LiteralPath $DependencyRoot).Path
+    $cmakeArguments += "-DDEV_DIR=$DependencyRoot"
+}
+if ($QtPrefix) {
+    if (-not $DependencyRoot) { throw 'QtPrefix builds require DependencyRoot; run tools/fetch-native-sources.ps1 first.' }
+    $QtPrefix = (Resolve-Path -LiteralPath $QtPrefix).Path
+    if (-not (Test-Path -LiteralPath (Join-Path $QtPrefix 'lib/cmake/Qt5/Qt5Config.cmake') -PathType Leaf)) {
+        throw 'QtPrefix must contain a Qt 5 installation with Widgets, Gui and Network.'
+    }
+    $cmakeArguments += "-DCMAKE_PREFIX_PATH=$QtPrefix"
+    $freetypeSource = Join-Path $DependencyRoot 'FreeType/freetype-2.9.1'
+    $freetypeBuild = Join-Path $buildDir 'freetype'
+    & cmake -S $freetypeSource -B $freetypeBuild -A x64 `
+        '-DCMAKE_POLICY_VERSION_MINIMUM=3.5' '-DCMAKE_DEBUG_POSTFIX=d' `
+        '-DCMAKE_C_FLAGS_RELEASE=/O2 /Ob2 /DNDEBUG /MT' '-DCMAKE_C_FLAGS_DEBUG=/Zi /Ob0 /Od /RTC1 /MT' `
+        '-DCMAKE_C_FLAGS_RELWITHDEBINFO=/O2 /Ob1 /Zi /DNDEBUG /MT' `
+        '-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE' '-DCMAKE_DISABLE_FIND_PACKAGE_BZip2=TRUE' `
+        '-DCMAKE_DISABLE_FIND_PACKAGE_PNG=TRUE' '-DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=TRUE'
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (-not $ConfigureOnly) {
+        & cmake --build $freetypeBuild --config $Configuration --parallel 2
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+    $cmakeArguments += @(
+        "-DFREETYPE_LIBRARY_RELEASE=$freetypeBuild/Release/freetype.lib",
+        "-DFREETYPE_LIBRARY_DEBUG=$freetypeBuild/Debug/freetyped.lib",
+        "-DFREETYPE_INCLUDE_DIR_ft2build=$freetypeSource/include",
+        "-DFREETYPE_INCLUDE_DIR_freetype2=$freetypeSource/include"
+    )
+} else {
+  $vcpkgRoot = $env:VCPKG_ROOT
+  if (-not $vcpkgRoot) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
     if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
         throw "VCPKG_ROOT is not set and Visual Studio vswhere.exe was not found."
@@ -52,19 +86,16 @@ if (-not $vcpkgRoot) {
         throw "Visual Studio Build Tools with MSBuild were not found."
     }
     $vcpkgRoot = Join-Path $vsPath "VC\vcpkg"
-}
-
-$toolchain = Join-Path $vcpkgRoot "scripts\buildsystems\vcpkg.cmake"
-if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf)) {
+  }
+  $toolchain = Join-Path $vcpkgRoot "scripts\buildsystems\vcpkg.cmake"
+  if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf)) {
     throw "vcpkg toolchain not found at $toolchain"
+  }
+  $cmakeArguments += @("-DCMAKE_TOOLCHAIN_FILE=$toolchain", "-DVCPKG_INSTALLED_DIR=$dependencyDir", '-DVCPKG_TARGET_TRIPLET=x64-windows-static')
 }
 
 Write-Host "Using $($generatedSources.Count) committed generated C++ translation units."
-& cmake -S $sourceDir -B $buildDir -G "Visual Studio 18 2026" -A x64 `
-    "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
-    "-DVCPKG_INSTALLED_DIR=$dependencyDir" `
-    "-DVCPKG_TARGET_TRIPLET=x64-windows-static" `
-    "-DRENDER_LLM_ASAN=$($AddressSanitizer.IsPresent)"
+& cmake @cmakeArguments
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
@@ -79,12 +110,20 @@ if (-not $ConfigureOnly) {
         ($_.ExecutablePath -match $runtimePattern -or ($_.CommandLine -replace '/', '\') -match $runtimePattern)
     })
     if ($owners.Count -gt 0) { throw "Close this runtime's editor/Agent before packaging (PID $($owners.ProcessId -join ', '))." }
-    & cmake --build $buildDir --config $Configuration -- /m
+    & cmake --build $buildDir --config $Configuration --parallel 2 -- /p:CL_MPCount=2
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
 
     $runtimeDir = Join-Path $buildDir $Configuration
+    if ($QtPrefix) {
+        foreach ($name in @('Qt5Core.dll', 'Qt5Gui.dll', 'Qt5Widgets.dll', 'Qt5Network.dll')) {
+            Copy-Item -LiteralPath (Join-Path $QtPrefix "bin/$name") -Destination $runtimeDir -Force
+        }
+        $platforms = Join-Path $runtimeDir 'platforms'
+        New-Item -ItemType Directory -Path $platforms -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $QtPrefix 'plugins/platforms/qwindows.dll') -Destination $platforms -Force
+    }
     $datafilesDir = Join-Path $repoRoot "GmProject\datafiles"
     $dataSource = Join-Path $datafilesDir "Data"
     if (-not (Test-Path -LiteralPath $dataSource -PathType Container)) {
@@ -149,12 +188,16 @@ if (-not $ConfigureOnly) {
     # application must never install or compile dependencies on first launch.
     $assistantSource = Join-Path $repoRoot "ASSISTANT"
     $assistantRuntime = Join-Path $runtimeDir "ASSISTANT"
-    $npmCommand = (Get-Command npm -ErrorAction Stop).Source
+    $nodeCommand = (Get-Command node -ErrorAction Stop).Source
+    $npmCli = Join-Path (Split-Path $nodeCommand -Parent) 'node_modules/npm/bin/npm-cli.js'
+    if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) {
+        throw 'Install the official Node.js distribution including npm alongside node.exe.'
+    }
     Push-Location $assistantSource
     try {
-        & $npmCommand ci --ignore-scripts --no-audit --no-fund
+        & $nodeCommand $npmCli ci --ignore-scripts --no-audit --no-fund
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        & $npmCommand run build:runtime
+        & $nodeCommand $npmCli run build:runtime
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     finally {
@@ -182,7 +225,7 @@ if (-not $ConfigureOnly) {
     Copy-Item -LiteralPath (Join-Path $assistantSource "package-lock.json") -Destination $assistantRuntimeFull
     Copy-Item -LiteralPath (Join-Path $assistantSource "prompts\render-llm-role.md") -Destination (Join-Path $assistantRuntimeFull "prompts")
     Copy-Item -LiteralPath (Join-Path $assistantSource "tools\run_render_inst.ps1") -Destination (Join-Path $assistantRuntimeFull "tools")
-    & $npmCommand ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix $assistantRuntimeFull
+    & $nodeCommand $npmCli ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix $assistantRuntimeFull
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & node (Join-Path $assistantSource "test\verify-runtime-package.mjs") $assistantRuntimeFull
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
