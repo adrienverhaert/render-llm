@@ -16,7 +16,7 @@
 
 // SPEC_WHITE_DETAILS_GOLD.md: motor GOLD del post-proceso "white details".
 // Rework completo del motor v1 (SPEC_WHITE_DETAILS.md) para clonar el trazo
-// manual de Antonio (ver METRICAS_MANUAL.md, el faro medido). SS1 del spec
+// reference contour treatment. SS1 of the specification
 // GOLD documenta que se conserva / reescribe / jubila de v1; los bloques de
 // abajo estan marcados igual. Invariantes NO negociables (R6, sin cambios):
 // mono-hilo, sin contenedores de orden no determinista, sin dependencia de
@@ -1323,7 +1323,7 @@ namespace CppProject
 			// 91 px), 8 (brazo derecho, 213 px), 9 (diagonal del pecho, 404 px) y
 			// 16 (216 px) caen en c01 = 0.10 / 0.06 / 0.02 / 0.09 -- contraste
 			// practicamente NULO, y hasta negativo (el fondo es MAS claro que el
-			// sujeto) -- y Antonio las pinta igual. Con c^contrast_pow eso da
+			// subject), but reference contours remain visible. With c^contrast_pow this gives
 			// ~0.001 y esos bordes no llegan ni a candidatos: 17% de la masa del
 			// oro es inalcanzable a cualquier t_seed (medido en el barrido r29).
 			// `contrast_bias` es el SUELO del termino de contraste, misma
@@ -1704,7 +1704,7 @@ namespace CppProject
 		// GOLD tanda 3 (E-A, SPEC_WHITE_DETAILS_GOLD.md SS20): la imagen de
 		// TRABAJO de toda la deteccion/scoring (Y[], de la que salen
 		// contraste E3, luminancia interior, cresta E9, etc.) es el sujeto
-		// con la CAPA DE CURVAS de Antonio ya compuesta encima -- exactamente
+		// with the reference curves layer already composited above it, matching
 		// la misma capa que E10 emite en out_curves: la LUT (BuildCurvesLUT)
 		// aplicada SOLO dentro de la banda de borde (curves_width + rampa,
 		// por curves_strength y curves_alpha), no en todo el sujeto.

@@ -87,11 +87,9 @@ function todayIso(now = new Date()): string {
 }
 
 /**
- * Clave del archivo de proyecto: <slug>-<hash8>.
- * El slug es legible (para que Antonio encuentre el archivo a ojo) y el hash8
- * desambigua dos proyectos que se llamen IGUAL en carpetas distintas.
- * La ruta se normaliza (minusculas + "/") para que la clave no dependa de como
- * el editor haya escrito las barras.
+ * Project file key: <slug>-<hash8>. The readable slug identifies the project;
+ * the hash distinguishes equal filenames in different directories. Normalize
+ * case and separators so equivalent paths produce the same key.
  */
 export function projectKey(projectFile: string): string {
   const base = path.basename(projectFile).replace(/\.[^.]*$/, '');

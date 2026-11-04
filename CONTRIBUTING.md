@@ -20,6 +20,11 @@ the executed backend, not just successful compilation or a selected UI setting.
 Keep pull requests focused. Explain the concrete behavior changed and include the
 commands run and their results. Add a regression test for a nontrivial bug fix.
 Never replace a failed check with a weaker assertion merely to make CI pass.
+Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md): explain product impact,
+implementation, compatibility, evidence and deployment separately. For visual
+changes, include actual before/after captures or a recording. Native Qt checks use
+the native harness; browser presentation checks use Playwright. Identify the host
+and command used rather than labeling a native capture as a browser recording.
 
 Do not commit user scenes, provider credentials, chats, crash dumps, machine paths
 or agent operating instructions. Required product prompts and deterministic test

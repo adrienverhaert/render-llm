@@ -31,6 +31,7 @@ if($links.Count){throw 'Assistant runtime contains a reparse point; inspect befo
 Copy-Item -LiteralPath $assistant -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'examples/studio-bounce.renderllm') -Destination (Join-Path $stage 'Data/renderllm-projects/studio-bounce.renderllm')
 Copy-Item -LiteralPath (Join-Path $repo 'LICENSING.md') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $repo 'Installer/Windows/license.txt') -Destination (Join-Path $stage 'UPSTREAM-NOTICE.txt')
 & node (Join-Path $repo 'ASSISTANT/test/verify-runtime-package.mjs') (Join-Path $stage 'ASSISTANT')
 if($LASTEXITCODE -ne 0){throw 'Staged agent verification failed.'}

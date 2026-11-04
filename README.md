@@ -1,14 +1,27 @@
+<div align="center">
+
+<img src="docs/media/logo.png" alt="Render LLM" width="72">
+
 # Render LLM
 
-A native 3D editor that an AI agent can operate, render and inspect. The agent gets
-the rendered image back, so its next change can respond to the composition it
-actually produced.
+A native 3D editor with programmable scene control, GPU rendering and animation.
+Create a scene in the editor or through MCP and HTTP, render it, and inspect the
+result without leaving the same document.
 
-![A studio scene rendered by Render LLM](docs/media/noir-studio.png)
+[![CI](https://github.com/adrienverhaert/render-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/adrienverhaert/render-llm/actions/workflows/ci.yml)
+[![Windows x64](https://img.shields.io/badge/native-Windows_x64-141413)](docs/BUILD.md)
+[![Node.js 22+](https://img.shields.io/badge/agent-Node.js_22%2B-333333)](ASSISTANT/package.json)
+[![Technical preview](https://img.shields.io/badge/status-technical_preview-555555)](docs/STATUS.md)
 
-**Windows technical preview.** This repository is being prepared for external
-testing. There is no supported public download yet. See [current status](docs/STATUS.md)
-for the checks completed and the remaining release blockers.
+**[Build](docs/BUILD.md) · [Try a scene](docs/DEMO.md) · [MCP & HTTP](docs/MCP.md) · [Verification](docs/STATUS.md)**
+
+<img src="docs/media/noir-studio.png" alt="A studio scene rendered by Render LLM" width="100%">
+
+</div>
+
+**Windows x64.** Follow the [build guide](docs/BUILD.md) to run the editor and the
+[scene walkthrough](docs/DEMO.md) to try its rendering and transport interfaces.
+[Verification](docs/STATUS.md) records the tested build and export paths.
 
 <details>
 <summary>See the native editor and an actual animation</summary>
@@ -19,7 +32,7 @@ for the checks completed and the remaining release blockers.
 
 [Download the original MP4](docs/media/studio-bounce.mp4). The still is 1280×720;
 the animation is H.264, 384×216, 96 frames at 24 fps. Both were rendered by the
-application with DXR and OIDN-CUDA; these are not generated mock screenshots.
+application with DXR and OIDN-CUDA.
 
 </details>
 
@@ -82,17 +95,36 @@ flow over MCP and HTTP.
 | Authenticated local HTTP API | [http-server.ts](ASSISTANT/src/http-server.ts) |
 | Frozen renders and media jobs | [still.ts](ASSISTANT/src/still.ts), [media-jobs.ts](ASSISTANT/src/media-jobs.ts) |
 
-## Rendering and origins
+```text
+render-llm/
+├── CppProject/    Native editor, scene bridge, Qt controls and rendering
+├── ASSISTANT/     Agent, MCP/HTTP transports and protocol regression tests
+├── examples/      Runnable studio and animation scenes
+├── docs/          Contracts, build guide, walkthrough and recorded media
+├── tools/         Pinned dependencies, build, packaging and verification
+└── .github/       CI, preview packaging and contribution templates
+```
+
+## Verification and preview packages
+
+CI builds the native Windows application, runs document checks, exercises the
+agent suite on Windows and Linux, and checks tracked files and local documentation
+links. The aggregate **Quality gate** requires every check to succeed.
+
+The manual [Preview package workflow](.github/workflows/preview.yml) produces a
+Windows ZIP from verified dependencies. It retains notices, verifies the staged
+agent, extracts the archive and compares file hashes before uploading an artifact.
+GPU execution is checked separately on actual hardware; hosted compilation does
+not certify a GPU render. [Current status](docs/STATUS.md) records that distinction.
+
+## Rendering
 
 The current format names the D3D11 renderer **Flame** and the DXR path tracer
 **UltraFlame**. Export results report the backend and denoiser that actually ran.
 See the [format contract](docs/FORMAT.md) for compatibility with older scene files.
 
-This implementation retains native code and resources from Mine-imator. It builds
-from committed C++ without running GameMaker or the GML generator, but it is not
-a wholly independent rewrite. The agent integration, shared scene actions and
-native migration work are documented here without removing upstream attribution.
-See [licensing and provenance](LICENSING.md) before redistributing code or binaries.
+See [licensing and third-party notices](LICENSING.md) for the terms governing
+source and binary redistribution.
 
 ## Contribute
 

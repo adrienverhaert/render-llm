@@ -13,8 +13,11 @@
 .env.*
 !.env.example
 **/AGENTS.md
+**/AGENTS.*.md
 **/CLAUDE.md
+**/CLAUDE.*.md
 **/SKILL.md
+**/.mcp.json
 **/.agents/
 **/.claude/
 **/.codex/

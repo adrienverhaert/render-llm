@@ -1,7 +1,7 @@
 # Reproduce the scene workflow
 
-The demo uses the actual native editor. There is no browser-based renderer or
-hosted AI endpoint in this repository.
+The demo runs in the native Windows editor. MCP and HTTP clients connect to that
+running instance and share its scene revision and undo history.
 
 1. Build the Windows application following [BUILD.md](BUILD.md).
 2. Open `examples/studio-bounce.renderllm` in the editor.

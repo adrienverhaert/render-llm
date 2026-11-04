@@ -1,7 +1,8 @@
 # Licensing and provenance
 
-No blanket license is being applied to this source snapshot while provenance is
-being verified. Public availability of source is not itself a license grant.
+The [MIT license](LICENSE) covers original Render LLM contributions only. No
+blanket license is being applied to inherited source, assets or bundled libraries
+while provenance is being verified. Public availability is not itself a license grant.
 
 The native codebase was developed from Mine-imator. In particular,
 `CppProject/Asset/HashMap.cpp` matches the upstream blob

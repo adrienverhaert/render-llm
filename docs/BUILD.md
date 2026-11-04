@@ -68,6 +68,7 @@ or successful build is not proof of the GPU path.
 
 ```powershell
 ./tools/test-still-export.ps1 -Runtime build/native/Release
+./tools/test-video-export.ps1 -Runtime build/native/Release
 ./tools/package-local-test.ps1 -Runtime build/native/Release
 ```
 

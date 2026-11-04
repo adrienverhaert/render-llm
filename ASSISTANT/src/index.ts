@@ -409,7 +409,7 @@ export async function runReal(p: Protocol, cfg: Config): Promise<void> {
           // .mcp.json de proyecto, settings de usuario, plugins y frontmatter
           // de agentes: la UNICA fuente de servers pasa a ser este objeto.
           strictMcpConfig: true,
-          // Los conectores cloud de la CUENTA de Antonio (Gmail/Calendar/
+          // Account-level cloud connectors (mail/calendar/
           // Indeed...) no vienen de settingSources ni de mcpServers: el SDK
           // los auto-descubre desde las credenciales de la cuenta que lanza
           // el proceso. settingSources:[] y strictMcpConfig no los tocan
@@ -616,8 +616,7 @@ export async function runReal(p: Protocol, cfg: Config): Promise<void> {
             // `error`, su CONTENIDO es el texto del fallo en ingles del
             // servidor ("Failed to authenticate: OAuth session expired..."). Si
             // se emite como respuesta normal acaba en el chat Y en
-            // history.jsonl, que es justo el error criptico que Antonio veia
-            // tres veces seguidas. El fallo se cuenta abajo, como notice.
+            // history.jsonl. Report the failure below as a notice instead.
             if (!sawStreamEvent && !m.error) {
               // Fallback for when partial messages did not arrive for this turn.
               flushTokens();

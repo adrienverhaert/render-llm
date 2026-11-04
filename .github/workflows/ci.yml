@@ -14,6 +14,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  documentation:
+    name: Documentation links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: python3 tools/check-doc-links.py --self-test
+      - run: python3 tools/check-doc-links.py
+
   repository:
     name: Repository boundary
     runs-on: ubuntu-latest
@@ -70,3 +78,21 @@ jobs:
         run: ./tools/build-native.ps1 -QtPrefix build/qt/5.15.2/msvc2019_64 -DependencyRoot build/dependencies -AllowGpuFallback
       - name: Test the native document boundary
         run: ctest --test-dir build/native -C Release --output-on-failure
+
+  quality:
+    name: Quality gate
+    if: always()
+    needs: [repository, documentation, agent, native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every check
+        env:
+          REPOSITORY_RESULT: ${{ needs.repository.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation.result }}
+          AGENT_RESULT: ${{ needs.agent.result }}
+          NATIVE_RESULT: ${{ needs.native.result }}
+        run: |
+          test "$REPOSITORY_RESULT" = success
+          test "$DOCUMENTATION_RESULT" = success
+          test "$AGENT_RESULT" = success
+          test "$NATIVE_RESULT" = success
