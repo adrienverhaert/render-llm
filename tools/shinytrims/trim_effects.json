@@ -1,0 +1,719 @@
+{
+	"version": 1,
+	"source": "ShinyTrims 26_2 -- assets/shinies/shaders/include/st_effects.glsl (pack compuesto rgb-lsb)",
+	"reference_height": 1080,
+	"comment": [
+		"CATALOGO UNICO de los 20 efectos de ShinyTrims portados a MI3.",
+		"Lo consume tools/shinytrims/gen_trim_effects.py, que genera:",
+		"  - el bloque de ramas de GmProject/shaders/shader_high_glint/shader_high_glint.fsh",
+		"    (termino ADITIVO, con color)",
+		"  - el bloque de ramas y el runtime de",
+		"    GmProject/shaders/shader_high_material/shader_high_material.fsh",
+		"    (GANANCIA EMISIVA, escalar, sin color)",
+		"  - GmProject/scripts/mi3_trim_fx_id/mi3_trim_fx_id.gml",
+		"  - GmProject/scripts/mi3_trim_fx_list/mi3_trim_fx_list.gml",
+		"NO edites los .fsh entre marcadores: el siguiente --write los revierte.",
+		"",
+		"CAMPOS:",
+		"  name          nombre canonico (minusculas, _ permitido)",
+		"  slot          EL SLOT DEL PACK (254..235). Es el valor de uTrimFx.",
+		"  reagent       reagent de Minecraft (documental, Anexo B del ground truth)",
+		"  space         none | time | texel | plane -- de que depende el patron",
+		"  default_space body | screen -- que espacio usa 'p' cuando uTrimSpace = -1",
+		"                (AUTO). Decision (f) del PO: CUERPO por defecto; las",
+		"                excepciones se justifican con evidencia en el campo 'space_note'.",
+		"  op            replace | add | max | mix | mix+add -- operador del pack",
+		"  loop_min_ticks  loop minimo byte-perfecto en modo FIEL (0 = estatico)",
+		"  rates         las n que usa (el generador valida el lcm contra loop_min_ticks",
+		"                Y que coinciden con las n que aparecen en 'add')",
+		"  params        {nombre: valor} sustituidos como {nombre} en 'add' y en 'gain'",
+		"  pack          GLSL LITERAL del pack -- se emite como comentario (auditoria)",
+		"  add           GLSL del termino ADITIVO en MI3 (el cuerpo de la rama del glint)",
+		"  gain          GLSL de la GANANCIA EMISIVA escalar (el cuerpo de la rama de",
+		"                shader_high_material). CONTRATO, y el generador lo COMPRUEBA",
+		"                NUMERICAMENTE en --check y en --write:",
+		"                    gain == stLum(add evaluado con base = vec3(1.0))",
+		"                O sea: la MISMA envolvente del efecto, sin el color del texel",
+		"                (el color ya lo pone el albedo, porque el emisivo del G-buffer",
+		"                es una GANANCIA sobre diffuse). Por eso nocturne de dia da 0",
+		"                EXACTO en los dos canales y charge empieza el ciclo vacia.",
+		"  emissive_gain OPCIONAL (defecto 1.0). Correccion de calibracion POR EFECTO",
+		"                sobre la ganancia, cuando un escalar global no clava un",
+		"                efecto. Se emite en stFxEmissiveGain() y NO entra en el",
+		"                contrato numerico de arriba.",
+		"  emissive_gain_rule  OPCIONAL (defecto 'p90'). Que REGLA fija ese numero, y",
+		"                la maquina la enforza (validacion 14 del generador):",
+		"                  p90     emissive_gain = 1/p90(gain) si p90 > 1.25, si no 1.0.",
+		"                  burn    EXCEPCION (ADENDA 3 #3): el efecto quemaba > 45% del",
+		"                          trim sobre oro en el DEFECTO DE ENVIO. Se baja hasta",
+		"                          que el emisivo aporta como mucho 10 pp de quemados",
+		"                          sobre los que ya mete su PROPIO canal aditivo",
+		"                          (columna TECHO de tools/shinytrims/measure_o4b.py",
+		"                          caracter, quemados = % del conjunto del trim con",
+		"                          max(rgb) > 250 en el marker 0). glowing esta EXENTO:",
+		"                          es fullbright por contrato del pack.",
+		"                  chroma  EXCEPCION (ADENDA 3 #2): el color del efecto viaja",
+		"                          por el canal ADITIVO y el emisivo (ganancia sobre",
+		"                          albedo) lo lavaba. Se baja hasta que el croma medio",
+		"                          del conjunto del trim -- media de max(rgb)-min(rgb)",
+		"                          en el marker 0 -- se queda a >= 90% del de la",
+		"                          columna TECHO.",
+		"                Las excepciones solo pueden BAJAR (techo duro = la regla p90) y",
+		"                exigen emissive_gain_note con el motivo y los numeros medidos.",
+		"  day_zero      OPCIONAL. El efecto declara que a plena luz",
+		"                (uTrimSceneLight >= 0.85) sus DOS canales valen 0 EXACTO.",
+		"                El generador lo comprueba. Es el contrato de nocturne.yml,",
+		"                el unico contrato explicito del pack.",
+		"",
+		"REGLA DE CONVERSION pack -> MI3 (spec O3/O4 3.6):",
+		"  fragColor.rgb = X       -> add = X       exacta sobre base oscura",
+		"  fragColor.rgb += X      -> add = X       exacta",
+		"  max(fragColor.rgb, X)   -> add = X       casi exacta sobre base oscura",
+		"  mix(fragColor.rgb,X,k)  -> add = X * k   aproximada",
+		"  mix + aditivo           -> suma de ambos aproximada en la parte mix",
+		"GAP DECLARADO: plasma (239) y rainbow_flow (238) usan mix SIN max y en el",
+		"pack PUEDEN OSCURECER el trim a plena luz. Un canal aditivo no puede",
+		"oscurecer. En las escenas de noche cerrada de los videos (que son el",
+		"criterio de aceptacion) la diferencia no es visible."
+	],
+	"effects": [
+		{
+			"name": "glowing",
+			"slot": 254,
+			"reagent": "glow_ink_sac",
+			"space": "none",
+			"default_space": "body",
+			"op": "replace",
+			"loop_min_ticks": 0,
+			"rates": [],
+			"params": {},
+			"pack": [
+				"fragColor.rgb = st_base.rgb;"
+			],
+			"add": [
+				"add = base;"
+			],
+			"gain": [
+				"gain = 1.0;"
+			],
+			"note": "Fullbright puro, sin animacion. Es la definicion operativa de emisivo en el pack."
+		},
+		{
+			"name": "periodic",
+			"slot": 253,
+			"reagent": "echo_shard",
+			"space": "time",
+			"default_space": "body",
+			"op": "mix",
+			"loop_min_ticks": 24000,
+			"rates": [1273],
+			"params": {},
+			"pack": [
+				"float pulse = 0.5 + 0.5 * st_wave(1273.0);",
+				"fragColor.rgb = mix(fragColor.rgb, st_base.rgb, pulse * pulse);"
+			],
+			"add": [
+				"float pulse = 0.5 + 0.5 * stWave(1273.0);",
+				"add = base * (pulse * pulse);"
+			],
+			"gain": [
+				"float pulse = 0.5 + 0.5 * stWave(1273.0);",
+				"gain = pulse * pulse;"
+			],
+			"note": "n = 1273 en modo FIEL (decision (d) del PO: periodic NO se reescala globalmente); en LOOP LOCK stQn lo cuantiza. Es el efecto validado en las oleadas 1-2."
+		},
+		{
+			"name": "shimmer",
+			"slot": 252,
+			"reagent": "glowstone_dust",
+			"space": "plane",
+			"default_space": "body",
+			"op": "add",
+			"loop_min_ticks": 12000,
+			"rates": [318, 796],
+			"params": {},
+			"pack": [
+				"float s = 0.5 * st_wavep(318.0, gl_FragCoord.y * 0.01) + 0.5 * st_wavep(796.0, gl_FragCoord.x * 0.007);",
+				"fragColor.rgb += st_base.rgb * (0.3 * smoothstep(-0.2, 0.8, s));"
+			],
+			"add": [
+				"float s = 0.5 * stWavep(318.0, p.y * 0.01) + 0.5 * stWavep(796.0, p.x * 0.007);",
+				"add = base * (0.3 * smoothstep(-0.2, 0.8, s));"
+			],
+			"gain": [
+				"float s = 0.5 * stWavep(318.0, p.y * 0.01) + 0.5 * stWavep(796.0, p.x * 0.007);",
+				"gain = 0.3 * smoothstep(-0.2, 0.8, s);"
+			],
+			"note": "Aditivo puro: el mas tenue de los 20 (como mucho 0.3 x el color del material)."
+		},
+		{
+			"name": "aurora",
+			"slot": 251,
+			"reagent": "heart_of_the_sea",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 2400,
+			"rates": [90, 140, 70],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy;",
+				"float curtain = 0.5 + 0.5 * sin(p.x * 0.045 + 3.0 * st_wave(90.0) + 2.0 * st_wavep(140.0, p.y * 0.0012));",
+				"float band = curtain * curtain * curtain;",
+				"float huedrift = 0.5 + 0.5 * st_wavep(70.0, p.x * 0.001);",
+				"vec3 veil = st_hsv(mix(0.34, 0.76, huedrift), 0.6, 1.0) * st_lum(st_base.rgb) * 1.6;",
+				"fragColor.rgb = max(fragColor.rgb, mix(fragColor.rgb, veil, band * 0.85));"
+			],
+			"add": [
+				"float curtain = 0.5 + 0.5 * sin(p.x * 0.045 + 3.0 * stWave(90.0) + 2.0 * stWavep(140.0, p.y * 0.0012));",
+				"float band = curtain * curtain * curtain;",
+				"float huedrift = 0.5 + 0.5 * stWavep(70.0, p.x * 0.001);",
+				"vec3 veil = stHsv(mix(0.34, 0.76, huedrift), 0.6, 1.0) * stLum(base) * 1.6;",
+				"add = veil * (band * 0.85);"
+			],
+			"gain": [
+				"float curtain = 0.5 + 0.5 * sin(p.x * 0.045 + 3.0 * stWave(90.0) + 2.0 * stWavep(140.0, p.y * 0.0012));",
+				"float band = curtain * curtain * curtain;",
+				"float huedrift = 0.5 + 0.5 * stWavep(70.0, p.x * 0.001);",
+				"gain = stLum(stHsv(mix(0.34, 0.76, huedrift), 0.6, 1.0)) * 1.6 * (band * 0.85);"
+			],
+			"emissive_gain": 0.15,
+			"emissive_gain_rule": "chroma",
+			"emissive_gain_note": "ADENDA 3 #2 (O5c), croma = media de max(rgb)-min(rgb) sobre el conjunto del trim en el marker 0, misma escena y mismo conjunto que measure_o4b.py caracter. Su color vive en el VELO stHsv del canal aditivo; el emisivo es ganancia sobre el albedo y lo lavaba: croma 25.58 frente a 33.36 del TECHO aditivo, un 77%. p90 no pedia correccion (p90 <= 1.25). Con 0.15 el croma es 30.06 = 90.1% del techo",
+			"note": "Cortinas verticales verde (0.34) a violeta (0.76). Las bandas son verticales: 1/0.045 = 140 px de referencia por cortina."
+		},
+		{
+			"name": "bodysweep",
+			"slot": 250,
+			"reagent": "breeze_rod",
+			"space": "plane",
+			"default_space": "body",
+			"op": "mix+add",
+			"loop_min_ticks": 1200,
+			"rates": [220],
+			"params": {},
+			"pack": [
+				"float band = fract(st_cycle(220.0) + gl_FragCoord.y * 0.004);",
+				"float bar = smoothstep(0.0, 0.12, band) * (1.0 - smoothstep(0.12, 0.35, band));",
+				"fragColor.rgb = mix(fragColor.rgb, st_base.rgb, 0.35);",
+				"fragColor.rgb += st_base.rgb * bar * 1.6;"
+			],
+			"add": [
+				"float band = fract(stCycle(220.0) + p.y * 0.004);",
+				"float bar = smoothstep(0.0, 0.12, band) * (1.0 - smoothstep(0.12, 0.35, band));",
+				"add = base * 0.35 + base * bar * 1.6;"
+			],
+			"gain": [
+				"float band = fract(stCycle(220.0) + p.y * 0.004);",
+				"float bar = smoothstep(0.0, 0.12, band) * (1.0 - smoothstep(0.12, 0.35, band));",
+				"gain = 0.35 + bar * 1.6;"
+			],
+			"emissive_gain": 0.553,
+			"emissive_gain_note": "barra de 250 px de referencia sobre un piso de 0.35; el pico de la barra (p90 1.810) doblaba fullbright",
+			"note": "La barra mide 1/0.004 = 250 px de referencia y recorre un ciclo cada 5.45 s. Es el test de calibracion de uTrimBodyScale (gate GG.3)."
+		},
+		{
+			"name": "breath",
+			"slot": 249,
+			"reagent": "ghast_tear",
+			"space": "time",
+			"default_space": "body",
+			"op": "mix",
+			"loop_min_ticks": 80,
+			"rates": [300],
+			"params": {},
+			"pack": [
+				"float b = 0.5 + 0.5 * st_wave(300.0);",
+				"float inten = 0.25 + 0.85 * b * b;",
+				"fragColor.rgb = mix(fragColor.rgb, st_base.rgb * inten, 0.6);"
+			],
+			"add": [
+				"float b = 0.5 + 0.5 * stWave(300.0);",
+				"float inten = 0.25 + 0.85 * b * b;",
+				"add = base * inten * 0.6;"
+			],
+			"gain": [
+				"float b = 0.5 + 0.5 * stWave(300.0);",
+				"float inten = 0.25 + 0.85 * b * b;",
+				"gain = inten * 0.6;"
+			],
+			"note": "Tiempo puro: sincronia perfecta entre piezas sin depender de pantalla ni UV. Ciclo de 4 s."
+		},
+		{
+			"name": "charge",
+			"slot": 248,
+			"reagent": "lightning_rod",
+			"space": "texel",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 1200,
+			"rates": [140],
+			"params": {},
+			"pack": [
+				"vec2 tx = floor(ST_UV * vec2(textureSize(Sampler0, 0)));",
+				"float t = st_cycle(140.0);",
+				"float fill = clamp((t - 0.05) / 0.50, 0.0, 1.0) - clamp((t - 0.64) / 0.31, 0.0, 1.0);",
+				"float lit = step(st_hash(tx), fill);",
+				"float flash = smoothstep(0.55, 0.60, t) * (1.0 - smoothstep(0.60, 0.72, t));",
+				"fragColor.rgb = max(fragColor.rgb, mix(fragColor.rgb, st_base.rgb * (0.85 + 0.5 * fill), lit) + st_base.rgb * flash * 1.6);"
+			],
+			"add": [
+				"float t = stCycle(140.0);",
+				"float fill = clamp((t - 0.05) / 0.50, 0.0, 1.0) - clamp((t - 0.64) / 0.31, 0.0, 1.0);",
+				"float lit = step(stHash(tx), fill);",
+				"float flash = smoothstep(0.55, 0.60, t) * (1.0 - smoothstep(0.60, 0.72, t));",
+				"add = base * (0.85 + 0.5 * fill) * lit + base * flash * 1.6;"
+			],
+			"gain": [
+				"float t = stCycle(140.0);",
+				"float fill = clamp((t - 0.05) / 0.50, 0.0, 1.0) - clamp((t - 0.64) / 0.31, 0.0, 1.0);",
+				"float lit = step(stHash(tx), fill);",
+				"float flash = smoothstep(0.55, 0.60, t) * (1.0 - smoothstep(0.60, 0.72, t));",
+				"gain = (0.85 + 0.5 * fill) * lit + flash * 1.6;"
+			],
+			"emissive_gain": 0.541,
+			"emissive_gain_note": "el fogonazo del ciclo (max 2.947) es intencionado, pero su p90 1.849 quemaba el ciclo entero",
+			"note": "tx es el indice ABSOLUTO de texel de la textura de la pieza (uTextureSize la fija render_set_texture con el tamano real), o sea un bucket de hash POR TEXEL: es lo que la v3 del pack persigue con textureSize(Sampler0,0), sin el bug de las grebas siempre encendidas de la v2."
+		},
+		{
+			"name": "chrome",
+			"slot": 247,
+			"reagent": "heavy_core",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 800,
+			"rates": [120, 90],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy;",
+				"float band1 = 0.5 + 0.5 * sin(p.x * 0.05 + p.y * 0.02 + 4.0 * st_wave(120.0));",
+				"float band2 = 0.5 + 0.5 * sin(p.x * 0.013 - p.y * 0.04 + 3.0 * st_wave(90.0));",
+				"float spec = band1 * band1 * band2;",
+				"fragColor.rgb = max(fragColor.rgb, st_base.rgb * (0.95 + 0.9 * spec) + vec3(1.0) * st_lum(st_base.rgb) * spec * spec * 0.8);"
+			],
+			"add": [
+				"float band1 = 0.5 + 0.5 * sin(p.x * 0.05 + p.y * 0.02 + 4.0 * stWave(120.0));",
+				"float band2 = 0.5 + 0.5 * sin(p.x * 0.013 - p.y * 0.04 + 3.0 * stWave(90.0));",
+				"float spec = band1 * band1 * band2;",
+				"add = base * (0.95 + 0.9 * spec) + vec3(1.0) * stLum(base) * spec * spec * 0.8;"
+			],
+			"gain": [
+				"float band1 = 0.5 + 0.5 * sin(p.x * 0.05 + p.y * 0.02 + 4.0 * stWave(120.0));",
+				"float band2 = 0.5 + 0.5 * sin(p.x * 0.013 - p.y * 0.04 + 3.0 * stWave(90.0));",
+				"float spec = band1 * band1 * band2;",
+				"gain = (0.95 + 0.9 * spec) + spec * spec * 0.8;"
+			],
+			"emissive_gain": 0.106,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). PISO ALTO por diseno (nunca baja de 0.95): p90 pedia 0.530 y con el quemaba el 48.7%. Con 0.106 quema 33.6%, +9.4 pp sobre el 24.2% de su TECHO aditivo; ademas recupera parte de su (pequena) variacion espacial, que la parte plana de la curva de tono le comia (amplitud 3.94 -> 4.38, techo 4.64)",
+			"note": "Piso de 0.95 x el crudo: practicamente fullbright siempre. SATURA (pico ~1.85 recortado a 1.0 por el LDR del pase glint, ADENDA del PO). Es uno de los candidatos a pedir HDR si la calibracion de O4 lo demuestra insuficiente."
+		},
+		{
+			"name": "kaleido",
+			"slot": 246,
+			"reagent": "firework_star",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 400,
+			"rates": [60, 240],
+			"params": {},
+			"pack": [
+				"vec2 cell = floor(gl_FragCoord.xy / 7.0);",
+				"float id = st_hash(cell);",
+				"vec3 jewel = st_hsv(fract(id + st_cycle(60.0)), 0.65, 1.0);",
+				"float tw = 0.8 + 0.2 * st_wavep(240.0, id);",
+				"fragColor.rgb = max(fragColor.rgb, mix(st_base.rgb, jewel * st_lum(st_base.rgb) * 1.7, 0.5) * tw);"
+			],
+			"add": [
+				"vec2 cell = floor(p / 7.0);",
+				"float idc = stHash(cell);",
+				"vec3 jewel = stHsv(fract(idc + stCycle(60.0)), 0.65, 1.0);",
+				"float tw = 0.8 + 0.2 * stWavep(240.0, idc);",
+				"add = mix(base, jewel * stLum(base) * 1.7, 0.5) * tw;"
+			],
+			"gain": [
+				"vec2 cell = floor(p / 7.0);",
+				"float idc = stHash(cell);",
+				"vec3 jewel = stHsv(fract(idc + stCycle(60.0)), 0.65, 1.0);",
+				"float tw = 0.8 + 0.2 * stWavep(240.0, idc);",
+				"gain = mix(1.0, stLum(jewel) * 1.7, 0.5) * tw;"
+			],
+			"space_note": "CANDIDATO A EXCEPCION DE ESPACIO EVALUADO Y RECHAZADO CON MEDIDA (oleada 3, evidencia_o34\\espacios.png). La hipotesis era que en CUERPO el mosaico saldria mucho mas fino que en el video, porque 7 px de referencia son 0.29 unidades de MI3 con uTrimBodyScale = 24 (un tercio de pixel de skin). Es cierto que son 0.29 unidades -- pero en el VIDEO tambien: el maniqui de amethyst_01.png mide ~768 px de 1080 para ~32 unidades, o sea 24 px de video por unidad, exactamente el uTrimBodyScale que se derivo de esa misma medida. 7 px de video / 24 px por unidad = 0.29 unidades. El mosaico de MC ES un moteado sub-texel a esa distancia. Medido en el render: en CUERPO las celdas salen a 2.3 px de los 272 px de alto del maniqui, que reescalado a los 768 px del video da 6.6 px -- las 7 px del pack. En PANTALLA, en cambio, el tamano depende del encuadre: en esta galeria (maniqui de 272 px) las celdas salen a 7 px de RENDER, es decir 3x MAS GRUESAS que en el video. Conclusion: CUERPO reproduce el video a cualquier encuadre y PANTALLA solo a uno. Default = body, como los otros 19.",
+			"emissive_gain": 0.357,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "Oleada 8, decisiones 2 y 3 del PO, en ese orden y las dos publicadas. (1) DECISION 2: kaleido NO es fullbright por contrato del pack (glowing si lo es, y por eso glowing esta exento); su p90 es 1.121, o sea de forma HABITUAL mete un 12% mas ganancia emisiva que fullbright, y con la banda muerta de la regla en 1.25 se colaba con emissive_gain = 1.0. Aplicada la regla tal cual, 1/1.121 = 0.892, y MEDIDO con ella: 31.8% de quemados contra 5.6% de su techo aditivo = +26.3 pp. (2) DECISION 3: el criterio (e) del gate de caracter pone el limite en 15 pp, asi que 1/p90 NO basta y kaleido pasa a la regla burn, la misma que O5c dio a chrome/lava_lamp/nebula/nocturne/oilslick/silk por el mismo motivo. Barrido por escena (trim_emissive escala el mismo producto que emissive_gain: emissive = matColor.a * stTrimGain() * uTrimIntensity * uTrimEmissiveScale), 6 puntos, equivalencias en emissive_gain: 0.624 -> 23.8% (+18.3 pp), 0.491 -> 19.7% (+14.1 pp), 0.357 -> 15.8% (+10.2 pp), 0.268 -> 13.4% (+7.9 pp), 0.178 -> 11.5% (+6.0 pp), 0.089 -> 9.2% (+3.7 pp). Elegido 0.357: deja los quemados en la familia de las otras seis excepciones burn (+0.5 a +9.4 pp) en vez de rozar el limite, y el color de kaleido vive en el canal ADITIVO, que esto no toca. Todas las cifras: measure_o4b.py caracter, markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim (15114 px) con max(rgb) > 250 en el marker 0.",
+			"note": "id -> idc porque 'id' no colisiona pero se reserva por claridad; el resto es port literal."
+		},
+		{
+			"name": "lava_lamp",
+			"slot": 245,
+			"reagent": "fire_charge",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 2400,
+			"rates": [70, 50],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy * 0.012;",
+				"float blob = 0.5 + 0.5 * sin(p.y * 2.2 - 6.2831 * st_cycle(70.0) + 1.7 * sin(p.x * 2.9 + 2.0 * st_wave(50.0)));",
+				"float body = smoothstep(0.35, 0.9, blob);",
+				"vec3 warm = st_base.rgb * vec3(1.25, 0.95, 0.75);",
+				"fragColor.rgb = max(fragColor.rgb, mix(st_base.rgb * 0.95, warm * 1.5, body));"
+			],
+			"add": [
+				"vec2 q = p * 0.012;",
+				"float blob = 0.5 + 0.5 * sin(q.y * 2.2 - 6.2831 * stCycle(70.0) + 1.7 * sin(q.x * 2.9 + 2.0 * stWave(50.0)));",
+				"float body = smoothstep(0.35, 0.9, blob);",
+				"vec3 warm = base * vec3(1.25, 0.95, 0.75);",
+				"add = mix(base * 0.95, warm * 1.5, body);"
+			],
+			"gain": [
+				"vec2 q = p * 0.012;",
+				"float blob = 0.5 + 0.5 * sin(q.y * 2.2 - 6.2831 * stCycle(70.0) + 1.7 * sin(q.x * 2.9 + 2.0 * stWave(50.0)));",
+				"float body = smoothstep(0.35, 0.9, blob);",
+				"gain = mix(0.95, stLum(vec3(1.25, 0.95, 0.75)) * 1.5, body);"
+			],
+			"emissive_gain": 0.052,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). p90 pedia 0.656 (piso 0.95 y blobs calidos a 1.5x) y con el quemaba el 62.9%. Su canal aditivo ya quema el 35.6% el solo, asi que el margen es estrecho: con 0.052 quema 40.6% (+5.0 pp sobre su TECHO); en el barrido de calibracion el escalon siguiente (0.079) ya daba 46.3%",
+			"note": "p -> q porque p es la variable del prologo (lista negra del validador)."
+		},
+		{
+			"name": "molten",
+			"slot": 244,
+			"reagent": "blaze_powder",
+			"space": "texel",
+			"default_space": "body",
+			"op": "add",
+			"loop_min_ticks": 1200,
+			"rates": [140],
+			"params": {
+				"span": 0.04
+			},
+			"pack": [
+				"float col = floor(ST_UV.x * float(textureSize(Sampler0, 0).x));",
+				"float drop = fract(ST_UV.y * 5.0 - st_cycle(140.0) - st_hash(vec2(col, 1.0)));",
+				"float tail = smoothstep(0.35, 0.95, drop);",
+				"float head = smoothstep(0.88, 0.97, drop) * (1.0 - smoothstep(0.97, 1.0, drop));",
+				"vec3 hot = st_base.rgb * vec3(1.35, 1.0, 0.7);",
+				"fragColor.rgb += hot * (0.25 * tail + 1.4 * head);"
+			],
+			"add": [
+				"float col = floor(uv.x * uTextureSize.x);",
+				"float drop = fract(uv.y * {span} - stCycle(140.0) - stHash(vec2(col, 1.0)));",
+				"float tail = smoothstep(0.35, 0.95, drop);",
+				"float head = smoothstep(0.88, 0.97, drop) * (1.0 - smoothstep(0.97, 1.0, drop));",
+				"vec3 hot = base * vec3(1.35, 1.0, 0.7);",
+				"add = hot * (0.25 * tail + 1.4 * head);"
+			],
+			"gain": [
+				"float col = floor(uv.x * uTextureSize.x);",
+				"float drop = fract(uv.y * {span} - stCycle(140.0) - stHash(vec2(col, 1.0)));",
+				"float tail = smoothstep(0.35, 0.95, drop);",
+				"float head = smoothstep(0.88, 0.97, drop) * (1.0 - smoothstep(0.97, 1.0, drop));",
+				"gain = stLum(vec3(1.35, 1.0, 0.7)) * (0.25 * tail + 1.4 * head);"
+			],
+			"note": "DECISION (a) DEL PO -- fiel a lo que se VE, con la aritmetica explicita. En el pack ST_UV.y * 5.0 son 5 ciclos a lo largo de la ALTURA DEL ATLAS entero, no de la pieza: un sprite de 32 px dentro de un atlas de ~4096 recorre 5 * 32/4096 = 0.039 de ciclo, o sea columnas de texeles con fase aleatoria que se encienden, dan un fogonazo y se apagan. span = 0.04 reproduce ese limite y conserva una pizca de direccion descendente. span = 5.0 seria fiel a la INTENCION (5 gotas por pieza) y es un cambio de UN solo numero en este catalogo."
+		},
+		{
+			"name": "nebula",
+			"slot": 243,
+			"reagent": "ender_eye",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 2400,
+			"rates": [300, 430, 50],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy * 0.015;",
+				"float f1 = 0.5 + 0.5 * st_wavep(300.0, p.x * 0.3 + p.y * 0.17);",
+				"float f2 = 0.5 + 0.5 * st_wavep(430.0, p.y * 0.23 - p.x * 0.11);",
+				"float cloud = f1 * 0.6 + f2 * 0.4;",
+				"vec3 hue = st_hsv(fract(0.72 + 0.1 * f1 + st_cycle(50.0)), 0.55, 1.0);",
+				"vec3 neb = mix(st_base.rgb, hue * st_lum(st_base.rgb) * 1.7, 0.45 + 0.3 * cloud);",
+				"fragColor.rgb = max(fragColor.rgb, neb * (0.85 + 0.45 * cloud));"
+			],
+			"add": [
+				"vec2 q = p * 0.015;",
+				"float f1 = 0.5 + 0.5 * stWavep(300.0, q.x * 0.3 + q.y * 0.17);",
+				"float f2 = 0.5 + 0.5 * stWavep(430.0, q.y * 0.23 - q.x * 0.11);",
+				"float cloud = f1 * 0.6 + f2 * 0.4;",
+				"vec3 hue = stHsv(fract(0.72 + 0.1 * f1 + stCycle(50.0)), 0.55, 1.0);",
+				"vec3 neb = mix(base, hue * stLum(base) * 1.7, 0.45 + 0.3 * cloud);",
+				"add = neb * (0.85 + 0.45 * cloud);"
+			],
+			"gain": [
+				"vec2 q = p * 0.015;",
+				"float f1 = 0.5 + 0.5 * stWavep(300.0, q.x * 0.3 + q.y * 0.17);",
+				"float f2 = 0.5 + 0.5 * stWavep(430.0, q.y * 0.23 - q.x * 0.11);",
+				"float cloud = f1 * 0.6 + f2 * 0.4;",
+				"vec3 hue = stHsv(fract(0.72 + 0.1 * f1 + stCycle(50.0)), 0.55, 1.0);",
+				"gain = mix(1.0, stLum(hue) * 1.7, 0.45 + 0.3 * cloud) * (0.85 + 0.45 * cloud);"
+			],
+			"emissive_gain": 0.165,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). p90 pedia 0.658 (nubes de interferencia sobre un piso de 0.822) y con el quemaba el 47.3%. Con 0.165 quema 28.1%, +9.0 pp sobre el 19.1% de su TECHO aditivo",
+			"note": "Dos campos de interferencia lentos tejiendo nubes nebulares sobre el color del material."
+		},
+		{
+			"name": "nocturne",
+			"slot": 242,
+			"reagent": "phantom_membrane",
+			"space": "time",
+			"default_space": "body",
+			"op": "mix",
+			"loop_min_ticks": 40,
+			"rates": [600],
+			"params": {},
+			"pack": [
+				"float dark = 1.0 - smoothstep(0.25, 0.85, st_lum(ST_LIGHT.rgb));",
+				"vec3 lit = max(fragColor.rgb, st_base.rgb * 1.35 * (0.9 + 0.1 * st_wave(600.0)));",
+				"fragColor.rgb = mix(fragColor.rgb, lit, dark);"
+			],
+			"add": [
+				"float dark = 1.0 - smoothstep(0.25, 0.85, uTrimSceneLight);",
+				"add = base * 1.35 * (0.9 + 0.1 * stWave(600.0)) * dark;"
+			],
+			"gain": [
+				"float dark = 1.0 - smoothstep(0.25, 0.85, uTrimSceneLight);",
+				"gain = 1.35 * (0.9 + 0.1 * stWave(600.0)) * dark;"
+			],
+			"emissive_gain": 0.158,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). p90 pedia 0.790 y con el nocturne quemaba el 69.4%, EL MISMO % que glowing (fullbright por contrato). Con 0.158 quema 35.0%, o sea +0.5 pp sobre el 34.5% que ya mete su propio canal aditivo (TECHO). Cierra ademas el unico fallo del gate de caracter: perdia 4.40 luma de amplitud con limite 2.00, ahora 1.01. De dia sigue siendo 0 EXACTO (el factor dark multiplica ANTES)",
+			"day_zero": true,
+			"note": "APROXIMACION DOCUMENTADA (marcada como tal por instruccion del PO). En el pack nocturne lee ST_LIGHT = el lightmap por vertice del propio texel. En MI3 el pase GLINT no tiene NINGUNA informacion de luz: se dibuja a masksurf antes de shader_high_lighting_apply (render_high_scene.gml:13-27 frente a :61-72) y el buffer de iluminacion aun no existe. uTrimSceneLight es un escalar DE ESCENA en [0,1] calculado en GML desde la luz solar y la ambiente ya resueltas. LO QUE SE PIERDE: nocturne no reacciona a que el personaje entre en una sombra ni a una antorcha cercana; reacciona a que la ESCENA sea de noche. En el ground truth (todos los clips son de noche cerrada) el comportamiento observable es identico."
+		},
+		{
+			"name": "oilslick",
+			"slot": 241,
+			"reagent": "prismarine_shard",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 2400,
+			"rates": [80, 110, 60, 40],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy;",
+				"float film = sin(p.x * 0.03 + 2.0 * st_wave(80.0)) + sin(p.y * 0.037 - 2.0 * st_wave(110.0)) + sin((p.x + p.y) * 0.021 + 3.0 * st_wave(60.0));",
+				"vec3 slick = st_hsv(fract(film * 0.16 + st_cycle(40.0)), 0.7, 1.0);",
+				"float lum = st_lum(st_base.rgb);",
+				"fragColor.rgb = max(fragColor.rgb, mix(st_base.rgb * 1.1, slick * lum * 1.8, 0.55));"
+			],
+			"add": [
+				"float film = sin(p.x * 0.03 + 2.0 * stWave(80.0)) + sin(p.y * 0.037 - 2.0 * stWave(110.0)) + sin((p.x + p.y) * 0.021 + 3.0 * stWave(60.0));",
+				"vec3 slick = stHsv(fract(film * 0.16 + stCycle(40.0)), 0.7, 1.0);",
+				"float lum = stLum(base);",
+				"add = mix(base * 1.1, slick * lum * 1.8, 0.55);"
+			],
+			"gain": [
+				"float film = sin(p.x * 0.03 + 2.0 * stWave(80.0)) + sin(p.y * 0.037 - 2.0 * stWave(110.0)) + sin((p.x + p.y) * 0.021 + 3.0 * stWave(60.0));",
+				"vec3 slick = stHsv(fract(film * 0.16 + stCycle(40.0)), 0.7, 1.0);",
+				"gain = mix(1.1, stLum(slick) * 1.8, 0.55);"
+			],
+			"emissive_gain": 0.297,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). p90 pedia 0.743 (pelicula fina siempre viva, piso 0.878) y con el quemaba el 55.1%. Con 0.297 quema 38.5%, +5.3 pp sobre el 33.2% de su TECHO aditivo",
+			"note": "Iridiscencia de pelicula fina: aceite sobre metal caliente, saturada y siempre viva."
+		},
+		{
+			"name": "opal",
+			"slot": 240,
+			"reagent": "crying_obsidian",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 800,
+			"rates": [60, 90],
+			"params": {},
+			"pack": [
+				"float band = gl_FragCoord.x * 0.008 + gl_FragCoord.y * 0.011;",
+				"vec3 sheen = st_hsv(fract(band * 0.25 + st_cycle(60.0)), 0.35, 1.0);",
+				"float lum = st_lum(st_base.rgb);",
+				"float glide = 0.45 + 0.25 * st_wavep(90.0, band);",
+				"fragColor.rgb = max(fragColor.rgb, mix(fragColor.rgb, sheen * lum * 1.5, glide * 0.6));"
+			],
+			"add": [
+				"float band = p.x * 0.008 + p.y * 0.011;",
+				"vec3 sheen = stHsv(fract(band * 0.25 + stCycle(60.0)), 0.35, 1.0);",
+				"float lum = stLum(base);",
+				"float glide = 0.45 + 0.25 * stWavep(90.0, band);",
+				"add = sheen * lum * 1.5 * (glide * 0.6);"
+			],
+			"gain": [
+				"float band = p.x * 0.008 + p.y * 0.011;",
+				"vec3 sheen = stHsv(fract(band * 0.25 + stCycle(60.0)), 0.35, 1.0);",
+				"float glide = 0.45 + 0.25 * stWavep(90.0, band);",
+				"gain = stLum(sheen) * 1.5 * (glide * 0.6);"
+			],
+			"note": "Brillo nacarado pastel deslizandose en diagonal. Lujo silencioso, nada de neon."
+		},
+		{
+			"name": "plasma",
+			"slot": 239,
+			"reagent": "magma_cream",
+			"space": "plane",
+			"default_space": "body",
+			"op": "mix",
+			"loop_min_ticks": 1200,
+			"rates": [700, 1100, 80],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy * 0.02;",
+				"float w = st_wavep(700.0, p.x * 0.35) + st_wavep(1100.0, p.y * 0.27 + p.x * 0.11);",
+				"float m = 0.5 + 0.25 * w;",
+				"vec3 shift = st_hsv(fract(0.55 + 0.12 * w + st_cycle(80.0)), 0.45, 1.0);",
+				"fragColor.rgb = mix(fragColor.rgb, st_base.rgb * shift * (0.7 + 0.8 * m), 0.7);"
+			],
+			"add": [
+				"vec2 q = p * 0.02;",
+				"float w = stWavep(700.0, q.x * 0.35) + stWavep(1100.0, q.y * 0.27 + q.x * 0.11);",
+				"float m2 = 0.5 + 0.25 * w;",
+				"vec3 shift = stHsv(fract(0.55 + 0.12 * w + stCycle(80.0)), 0.45, 1.0);",
+				"add = base * shift * (0.7 + 0.8 * m2) * 0.7;"
+			],
+			"gain": [
+				"vec2 q = p * 0.02;",
+				"float w = stWavep(700.0, q.x * 0.35) + stWavep(1100.0, q.y * 0.27 + q.x * 0.11);",
+				"float m2 = 0.5 + 0.25 * w;",
+				"vec3 shift = stHsv(fract(0.55 + 0.12 * w + stCycle(80.0)), 0.45, 1.0);",
+				"gain = stLum(shift) * (0.7 + 0.8 * m2) * 0.7;"
+			],
+			"note": "GAP DECLARADO: mix SIN max -- en el pack PUEDE OSCURECER el trim a plena luz y un canal aditivo no puede oscurecer. m -> m2 porque m es la mascara del prologo (lista negra del validador)."
+		},
+		{
+			"name": "rainbow_flow",
+			"slot": 238,
+			"reagent": "prismarine_crystals",
+			"space": "plane",
+			"default_space": "body",
+			"op": "mix",
+			"loop_min_ticks": 150,
+			"rates": [160],
+			"params": {},
+			"pack": [
+				"float h = fract(st_cycle(160.0) + (gl_FragCoord.x + gl_FragCoord.y) * 0.0022);",
+				"vec3 rgb = st_hsv(h, 0.75, 1.0) * (0.35 + 0.9 * st_lum(st_base.rgb));",
+				"fragColor.rgb = mix(fragColor.rgb, rgb, 0.8);"
+			],
+			"add": [
+				"float h = fract(stCycle(160.0) + (p.x + p.y) * 0.0022);",
+				"vec3 tint = stHsv(h, 0.75, 1.0) * (0.35 + 0.9 * stLum(base));",
+				"add = tint * 0.8;"
+			],
+			"gain": [
+				"float h = fract(stCycle(160.0) + (p.x + p.y) * 0.0022);",
+				"gain = stLum(stHsv(h, 0.75, 1.0)) * 1.25 * 0.8;"
+			],
+			"emissive_gain": 0.35,
+			"emissive_gain_rule": "chroma",
+			"emissive_gain_note": "ADENDA 3 #2 (O5c), croma = media de max(rgb)-min(rgb) sobre el conjunto del trim en el marker 0, misma escena y mismo conjunto que measure_o4b.py caracter. Su color vive en el ARCOIRIS del canal aditivo; el emisivo es ganancia sobre el albedo (oro) y lo lavaba: croma 76.23 frente a 90.39 del TECHO aditivo, un 84%. p90 no pedia correccion (p90 <= 1.25). Con 0.35 el croma es 84.07 = 93.0% del techo, y de paso los quemados bajan de 25.6% a 10.6%",
+			"note": "GAP DECLARADO: mix SIN max, igual que plasma. Es el mejor test de continuidad entre piezas (gate GG.2): el gradiente diagonal tiene que ser continuo entre casco, peto, grebas y botas. rgb -> tint para no chocar con el swizzle .rgb en una lectura rapida."
+		},
+		{
+			"name": "silk",
+			"slot": 237,
+			"reagent": "string",
+			"space": "plane",
+			"default_space": "body",
+			"op": "max",
+			"loop_min_ticks": 4800,
+			"rates": [70, 100, 45],
+			"params": {},
+			"pack": [
+				"vec2 p = gl_FragCoord.xy;",
+				"float fold = 0.5 + 0.5 * sin(p.y * 0.025 + 3.0 * sin(p.x * 0.008 + 2.0 * st_wave(70.0)) + 6.2831 * st_cycle(100.0));",
+				"vec3 pearl = st_hsv(fract(st_cycle(45.0) + 0.5), 0.4, 1.0) * st_lum(st_base.rgb) * 1.6;",
+				"fragColor.rgb = max(fragColor.rgb, mix(st_base.rgb * 1.05, pearl, fold * 0.6) * (0.9 + 0.35 * fold));"
+			],
+			"add": [
+				"float fold = 0.5 + 0.5 * sin(p.y * 0.025 + 3.0 * sin(p.x * 0.008 + 2.0 * stWave(70.0)) + 6.2831 * stCycle(100.0));",
+				"vec3 pearl = stHsv(fract(stCycle(45.0) + 0.5), 0.4, 1.0) * stLum(base) * 1.6;",
+				"add = mix(base * 1.05, pearl, fold * 0.6) * (0.9 + 0.35 * fold);"
+			],
+			"gain": [
+				"float fold = 0.5 + 0.5 * sin(p.y * 0.025 + 3.0 * sin(p.x * 0.008 + 2.0 * stWave(70.0)) + 6.2831 * stCycle(100.0));",
+				"float pearl = stLum(stHsv(fract(stCycle(45.0) + 0.5), 0.4, 1.0)) * 1.6;",
+				"gain = mix(1.05, pearl, fold * 0.6) * (0.9 + 0.35 * fold);"
+			],
+			"emissive_gain": 0.133,
+			"emissive_gain_rule": "burn",
+			"emissive_gain_note": "O5c, medido con measure_o4b.py caracter (markers no armonicos 0/6/13/29/47/71, quemados = % del conjunto del trim con max(rgb)>250 en el marker 0). p90 pedia 0.666 (pliegues perlados sobre un piso de 0.945) y con el quemaba el 50.9%. Con 0.133 quema 27.7%, +6.8 pp sobre el 20.9% de su TECHO aditivo",
+			"note": "Ondas en S de luz perlada plegandose como seda. Loop minimo mas largo del catalogo tras periodic y shimmer: 4800 ticks = 240 s."
+		},
+		{
+			"name": "spark",
+			"slot": 236,
+			"reagent": "amethyst_shard",
+			"space": "texel",
+			"default_space": "body",
+			"op": "mix+add",
+			"loop_min_ticks": 1000,
+			"rates": [600, 48],
+			"params": {},
+			"pack": [
+				"vec2 tx = floor(ST_UV * vec2(textureSize(Sampler0, 0)));",
+				"float ph = st_hash(tx);",
+				"float tw = smoothstep(0.55, 1.0, 0.5 + 0.5 * st_wavep(600.0, ph));",
+				"float glint = smoothstep(0.97, 1.0, st_hash(tx + vec2(floor(st_cycle(48.0) * 8.0), 3.0)));",
+				"fragColor.rgb = mix(fragColor.rgb, st_base.rgb * (0.9 + 1.6 * tw), 0.55 + 0.45 * tw);",
+				"fragColor.rgb += st_base.rgb * glint * 1.8;"
+			],
+			"add": [
+				"float ph = stHash(tx);",
+				"float tw = smoothstep(0.55, 1.0, 0.5 + 0.5 * stWavep(600.0, ph));",
+				"float gl = smoothstep(0.97, 1.0, stHash(tx + vec2(floor(stCycle(48.0) * 8.0), 3.0)));",
+				"add = base * (0.9 + 1.6 * tw) * (0.55 + 0.45 * tw) + base * gl * 1.8;"
+			],
+			"gain": [
+				"float ph = stHash(tx);",
+				"float tw = smoothstep(0.55, 1.0, 0.5 + 0.5 * stWavep(600.0, ph));",
+				"float gl = smoothstep(0.97, 1.0, stHash(tx + vec2(floor(stCycle(48.0) * 8.0), 3.0)));",
+				"gain = (0.9 + 1.6 * tw) * (0.55 + 0.45 * tw) + gl * 1.8;"
+			],
+			"emissive_gain": 0.405,
+			"emissive_gain_note": "el mas TENUE de los tres de calibracion en media, pero sus glints llegan a 4.11x fullbright: el p90 2.471 es el que manda",
+			"note": "floor(stCycle(48) * 8) = 8 rodajas de tiempo de 62.5 ticks. Es el mejor test de anclaje al TEXEL (amethyst.mp4: el centelleo esta clavado al metal y no nada al girar la camara). glint -> gl para no chocar con los uniformes uGlint* del pase."
+		},
+		{
+			"name": "tide",
+			"slot": 235,
+			"reagent": "nautilus_shell",
+			"space": "plane",
+			"default_space": "body",
+			"op": "add",
+			"loop_min_ticks": 400,
+			"rates": [180, 1200],
+			"params": {},
+			"pack": [
+				"float ph = fract(st_cycle(180.0) + gl_FragCoord.y * 0.003 + 0.15 * sin(gl_FragCoord.x * 0.02));",
+				"float swell = smoothstep(0.0, 0.45, ph) * (1.0 - smoothstep(0.45, 0.8, ph));",
+				"float crest = smoothstep(0.42, 0.48, ph) * (1.0 - smoothstep(0.48, 0.54, ph));",
+				"float foam = crest * step(0.5, st_hash(floor(gl_FragCoord.xy * 0.5) + floor(st_cycle(1200.0) * 4.0)));",
+				"vec3 sea = st_base.rgb * vec3(0.8, 1.05, 1.25);",
+				"fragColor.rgb += sea * swell * 0.5 + vec3(1.0) * st_lum(st_base.rgb) * foam * 1.2;"
+			],
+			"add": [
+				"float ph2 = fract(stCycle(180.0) + p.y * 0.003 + 0.15 * sin(p.x * 0.02));",
+				"float swell = smoothstep(0.0, 0.45, ph2) * (1.0 - smoothstep(0.45, 0.8, ph2));",
+				"float crest = smoothstep(0.42, 0.48, ph2) * (1.0 - smoothstep(0.48, 0.54, ph2));",
+				"float foam = crest * step(0.5, stHash(floor(p * 0.5) + floor(stCycle(1200.0) * 4.0)));",
+				"vec3 sea = base * vec3(0.8, 1.05, 1.25);",
+				"add = sea * swell * 0.5 + vec3(1.0) * stLum(base) * foam * 1.2;"
+			],
+			"gain": [
+				"float ph2 = fract(stCycle(180.0) + p.y * 0.003 + 0.15 * sin(p.x * 0.02));",
+				"float swell = smoothstep(0.0, 0.45, ph2) * (1.0 - smoothstep(0.45, 0.8, ph2));",
+				"float crest = smoothstep(0.42, 0.48, ph2) * (1.0 - smoothstep(0.48, 0.54, ph2));",
+				"float foam = crest * step(0.5, stHash(floor(p * 0.5) + floor(stCycle(1200.0) * 4.0)));",
+				"gain = stLum(vec3(0.8, 1.05, 1.25)) * swell * 0.5 + foam * 1.2;"
+			],
+			"note": "Oleaje con linea de espuma centelleante en cada cresta. ph -> ph2 solo por simetria con spark."
+		}
+	]
+}
