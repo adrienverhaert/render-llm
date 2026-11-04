@@ -1,6 +1,7 @@
-param([string]$Runtime='build/native-hierarchy-clean-20260915/Release',
-    [string]$Evidence='docs/evidence/ui/output-still',
-    [int]$Width=1280,[int]$Height=720,[int]$Samples=16,[switch]$Custom,[switch]$Compact)
+param([string]$Runtime='build/native/Release',
+    [string]$Evidence='build/checks/output-still',
+    [int]$Width=1280,[int]$Height=720,[int]$Samples=16,[switch]$Custom,[switch]$Compact,
+    [string]$Scene=(Join-Path $PSScriptRoot '../examples/studio-bounce.renderllm'))
 $ErrorActionPreference='Stop'
 $runtimePath=(Resolve-Path -LiteralPath $Runtime).Path
 $evidencePath=[IO.Path]::GetFullPath($Evidence)
@@ -9,9 +10,10 @@ New-Item -ItemType Directory -Path $evidencePath | Out-Null
 $keys=@('RENDER_LLM_CAPTURE_UI','RENDER_LLM_CAPTURE_SCENE','RENDER_LLM_CAPTURE_RENDER_UI','RENDER_LLM_RUN_EXPORT_UI','RENDER_LLM_TEST_EXPORT_REQUEST','RENDER_LLM_TEST_EXPORT_COMPACT')
 $previous=@{};foreach($key in $keys){$previous[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
 $fixtureName="still-$([guid]::NewGuid().ToString('N')).renderllm"
+New-Item -ItemType Directory -Path (Join-Path $runtimePath 'Data/renderllm-projects') -Force | Out-Null
 $fixture=Join-Path $runtimePath "Data/renderllm-projects/$fixtureName"
 try {
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../docs/evidence/ui/studio-motion.renderllm') -Destination $fixture
+    Copy-Item -LiteralPath $Scene -Destination $fixture
     $env:RENDER_LLM_CAPTURE_UI='1';$env:RENDER_LLM_CAPTURE_SCENE=$fixtureName
     $env:RENDER_LLM_CAPTURE_RENDER_UI='1';$env:RENDER_LLM_RUN_EXPORT_UI='1'
     if($Compact){$env:RENDER_LLM_TEST_EXPORT_COMPACT='1'}else{Remove-Item Env:RENDER_LLM_TEST_EXPORT_COMPACT -ErrorAction SilentlyContinue}

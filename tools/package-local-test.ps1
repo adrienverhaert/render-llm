@@ -1,4 +1,4 @@
-param([string]$Runtime='build/native-motion-clean-20260914/Release',[string]$Destination='build/local-test-candidate')
+param([string]$Runtime='build/native/Release',[string]$Destination='build/local-test-candidate')
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $runtimePath=(Resolve-Path -LiteralPath $Runtime).Path
@@ -17,11 +17,18 @@ foreach($name in @('render-llm.exe','dxcompiler.dll','dxil.dll','OpenImageDenois
 foreach($name in @('Fonts','Languages','Libraries','Render','languages.midata','legacy.midata')) {
     Copy-Item -LiteralPath (Join-Path $runtimePath "Data/$name") -Destination (Join-Path $stage 'Data') -Recurse
 }
+if (Test-Path -LiteralPath (Join-Path $runtimePath 'Qt5Core.dll')) {
+    foreach ($name in @('Qt5Core.dll', 'Qt5Gui.dll', 'Qt5Widgets.dll', 'Qt5Network.dll')) {
+        Copy-Item -LiteralPath (Join-Path $runtimePath $name) -Destination $stage
+    }
+    New-Item -ItemType Directory -Path (Join-Path $stage 'platforms') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $runtimePath 'platforms/qwindows.dll') -Destination (Join-Path $stage 'platforms')
+}
 $assistant=Join-Path $runtimePath 'ASSISTANT'
 $links=@(Get-ChildItem -LiteralPath $assistant -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint })
 if($links.Count){throw 'Assistant runtime contains a reparse point; inspect before packaging.'}
 Copy-Item -LiteralPath $assistant -Destination $stage -Recurse
-Copy-Item -LiteralPath (Join-Path $repo 'docs/evidence/ui/studio-motion.renderllm') -Destination (Join-Path $stage 'Data/renderllm-projects/studio-bounce.renderllm')
+Copy-Item -LiteralPath (Join-Path $repo 'examples/studio-bounce.renderllm') -Destination (Join-Path $stage 'Data/renderllm-projects/studio-bounce.renderllm')
 & node (Join-Path $repo 'ASSISTANT/test/verify-runtime-package.mjs') (Join-Path $stage 'ASSISTANT')
 if($LASTEXITCODE -ne 0){throw 'Staged agent verification failed.'}
 $files=@(Get-ChildItem -LiteralPath $stage -Recurse -File -Force | ForEach-Object {
