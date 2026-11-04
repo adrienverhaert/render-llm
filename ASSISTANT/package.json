@@ -1,0 +1,29 @@
+{
+  "name": "render-llm-assistant",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:runtime": "tsc -p tsconfig.runtime.json",
+    "start": "node dist/index.js",
+    "mcp": "node dist/mcp-stdio.js",
+    "http": "node dist/http-api.js",
+    "fake": "node dist/index.js --fake",
+    "test": "npm run build && node test/run-tests.mjs",
+    "test:http-smoke": "node test/run-http-smoke.mjs",
+    "test:http-video-smoke": "node test/run-http-video-smoke.mjs",
+    "test:e2e-smoke": "npm run build && node test/run-e2e-smoke.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.222",
+    "@anthropic-ai/sdk": "^0.93.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

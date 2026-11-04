@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "scene": {
+    "objects": [
+      {
+        "id": "floor",
+        "name": "White Floor",
+        "kind": "plane",
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [8, 8, 8],
+        "visible": true,
+        "material_id": "white"
+      },
+      {
+        "id": "pedestal",
+        "name": "Pedestal",
+        "kind": "cylinder",
+        "position": [0, 0, 1.2],
+        "rotation": [0, 0, 0],
+        "scale": [0.25, 0.25, 0.15],
+        "visible": true,
+        "material_id": "pedestal"
+      },
+      {
+        "id": "sphere",
+        "name": "Red Bouncing Sphere",
+        "kind": "sphere",
+        "position": [0, 0, 3.8],
+        "rotation": [0, 0, 0],
+        "scale": [0.2, 0.2, 0.2],
+        "visible": true,
+        "material_id": "red"
+      },
+      {
+        "id": "camera",
+        "name": "Following Camera",
+        "kind": "camera",
+        "position": [10, 10, 13.8],
+        "rotation": [45, 0, 225],
+        "scale": [1, 1, 1],
+        "visible": true,
+        "camera": {
+          "fov_y_deg": 42,
+          "orthographic": false,
+          "ortho_height": 6,
+          "dof": false,
+          "focus_distance": 12
+        }
+      },
+      {
+        "id": "key",
+        "name": "Studio Key",
+        "kind": "point",
+        "position": [4, 5, 7],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1],
+        "visible": true,
+        "light": { "color": "#FFFFFF", "power": 3, "size": 3 }
+      },
+      {
+        "id": "fill",
+        "name": "Studio Fill",
+        "kind": "point",
+        "position": [-4, 2, 4],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1],
+        "visible": true,
+        "light": { "color": "#FFFFFF", "power": 1, "size": 2 }
+      }
+    ],
+    "world": { "color": "#FFFFFF", "strength": 0.8 },
+    "active_camera_id": "camera"
+  },
+  "materials": {
+    "white": { "color": "#FFFFFF", "metallic": 0, "roughness": 1, "emission": 0 },
+    "pedestal": { "color": "#D9D9D9", "metallic": 0.05, "roughness": 0.5, "emission": 0 },
+    "red": { "color": "#D92525", "metallic": 0, "roughness": 0.35, "emission": 0 }
+  },
+  "animation": {
+    "schema": 1,
+    "fps": 24,
+    "frame_count": 96,
+    "constraints": [],
+    "tracks": [
+      {
+        "id": "sphere-position",
+        "target": "sphere",
+        "property": "position",
+        "keys": [
+          { "frame": 0, "value": [0, 0, 3.8], "easing": "smooth" },
+          { "frame": 24, "value": [0, 0, 6.5], "easing": "smooth" },
+          { "frame": 48, "value": [0, 0, 3.8], "easing": "smooth" },
+          { "frame": 72, "value": [0, 0, 5.8], "easing": "smooth" },
+          { "frame": 95, "value": [0, 0, 3.8], "easing": "smooth" }
+        ]
+      },
+      {
+        "id": "camera-position",
+        "target": "camera",
+        "property": "position",
+        "keys": [
+          { "frame": 0, "value": [10, 10, 13.8], "easing": "smooth" },
+          { "frame": 24, "value": [10, 10, 16.5], "easing": "smooth" },
+          { "frame": 48, "value": [10, 10, 13.8], "easing": "smooth" },
+          { "frame": 72, "value": [10, 10, 15.8], "easing": "smooth" },
+          { "frame": 95, "value": [10, 10, 13.8], "easing": "smooth" }
+        ]
+      },
+      {
+        "id": "camera-rotation",
+        "target": "camera",
+        "property": "rotation",
+        "keys": [
+          { "frame": 0, "value": [45, 0, 225], "easing": "smooth" },
+          { "frame": 24, "value": [45, 0, 225], "easing": "smooth" },
+          { "frame": 48, "value": [45, 0, 225], "easing": "smooth" },
+          { "frame": 72, "value": [45, 0, 225], "easing": "smooth" },
+          { "frame": 95, "value": [45, 0, 225], "easing": "smooth" }
+        ]
+      }
+    ]
+  },
+  "render": { "renderer": "Flame", "samples": 4 },
+  "agent": {}
+}

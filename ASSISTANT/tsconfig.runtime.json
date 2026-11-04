@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-runtime"
+  },
+  "include": [],
+  "files": [
+    "src/index.ts",
+    "src/codex-mcp-stdio.ts",
+    "src/mcp-stdio.ts",
+    "src/http-api.ts",
+    "src/batch-ui.ts",
+    "src/export-ui.ts"
+  ]
+}
