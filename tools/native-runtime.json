@@ -3,6 +3,9 @@
   "components": {
     "oidn": {
       "version": "2.3.3",
+      "url": "https://github.com/RenderKit/oidn/releases/download/v2.3.3/oidn-2.3.3.x64.windows.zip",
+      "archive_sha256": "30E41F6FE648536EF5657B45BCCD2B27C6CAED6461C832BDE4949B0F965BE0E0",
+      "bin": "oidn-2.3.3.x64.windows/bin",
       "files": {
         "OpenImageDenoise.dll": "D98D56950BF6E2A6E1F9B03BE3DD09CD2E658CF86B1058E4FAB9148A6A377E2F",
         "OpenImageDenoise_core.dll": "721E571FCB663EF369829CE52A67C76F8FA5B77B2CEE1CC81B39C972062113F9",
@@ -12,10 +15,13 @@
       }
     },
     "dxc": {
-      "version": "1.8.2502.11",
+      "version": "1.8.2502.8",
+      "url": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip",
+      "archive_sha256": "70B1913A1BFCE4A3E1A5311D16246F4ECDF3A3E613ABEC8AA529E57668426F85",
+      "bin": "bin/x64",
       "files": {
-        "dxcompiler.dll": "B855EE494C60A5DD0638D4574BC4D728C87FAC5D415B9BE3122058B5ADEFDA77",
-        "dxil.dll": "A3F47D552D06C8A9749AEEEBE9FDA895FC7EE3375A36BC9B7CC11B5A2BAEC372"
+        "dxcompiler.dll": "F79943B02F73B621421B58A569FD6EE120D0023FB6BFA23844ECAD6B00D6A295",
+        "dxil.dll": "62736E99AA534A942873F92B881A71B2CB6AD62B8D7481EA7A8AD8E9888A8056"
       }
     }
   }
