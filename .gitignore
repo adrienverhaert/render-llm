@@ -20,4 +20,5 @@
 **/.codex/
 /docs/evidence/
 /Data/
+/build-*.json
 **/__pycache__/

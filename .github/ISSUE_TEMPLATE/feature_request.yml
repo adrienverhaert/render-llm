@@ -1,0 +1,14 @@
+name: Focused proposal
+description: Propose a concrete change
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Describe the workflow and smallest useful improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How would we verify it?

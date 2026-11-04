@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Repository boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - run: node tools/check-repository.mjs --self-test
+      - run: node tools/check-repository.mjs
+
+  agent:
+    name: Agent, MCP and HTTP (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: ASSISTANT
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ASSISTANT/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: npm run build:runtime
+
+  native:
+    name: Windows native build and document tests
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Install the pinned Qt package
+        shell: pwsh
+        run: |
+          python -m venv build/qt-installer
+          build/qt-installer/Scripts/python.exe -m pip install aqtinstall==3.3.0
+          build/qt-installer/Scripts/python.exe -m aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --archives qtbase -O build/qt
+      - name: Fetch verified native sources
+        shell: pwsh
+        run: ./tools/fetch-native-sources.ps1
+      - name: Build the native application and stage the agent
+        shell: pwsh
+        run: ./tools/build-native.ps1 -QtPrefix build/qt/5.15.2/msvc2019_64 -DependencyRoot build/dependencies -AllowGpuFallback
+      - name: Test the native document boundary
+        run: ctest --test-dir build/native -C Release --output-on-failure
